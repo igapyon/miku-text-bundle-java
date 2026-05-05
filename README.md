@@ -23,13 +23,13 @@ mvn package
 The executable jar is created under `target/`.
 
 ```text
-target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar
+target/miku-text-bundle-java-0.5.0.jar
 ```
 
 ## Quick Start
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar .
+java -jar target/miku-text-bundle-java-0.5.0.jar .
 ```
 
 When the output directory is omitted, files are written under:
@@ -41,19 +41,19 @@ workplace/miku-text-bundle/<yyyyMMddHHmm>/
 To choose the output directory explicitly:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar . out/text-bundle
+java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle
 ```
 
 ## CLI Usage
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar <inputDir> [outputDir] [options]
+java -jar target/miku-text-bundle-java-0.5.0.jar <inputDir> [outputDir] [options]
 ```
 
 Named directory options are also supported:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar --input-directory <dir> --output-directory <dir>
+java -jar target/miku-text-bundle-java-0.5.0.jar --input-directory <dir> --output-directory <dir>
 ```
 
 Options:
@@ -106,13 +106,13 @@ The tool skips:
 Use `--include` to add extra text files:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar . out/text-bundle --include "docs/**/*.md,pom.xml"
+java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --include "docs/**/*.md,pom.xml"
 ```
 
 Use `--exclude` to remove matching files from the collected set:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar . out/text-bundle --exclude "src/generated/**"
+java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --exclude "src/generated/**"
 ```
 
 ## Examples
@@ -120,25 +120,25 @@ java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar . out/text-bundle --ex
 Bundle the current repository with the default output path:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar .
+java -jar target/miku-text-bundle-java-0.5.0.jar .
 ```
 
 Bundle a repository and write to a known directory:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar /path/to/repo /path/to/out
+java -jar target/miku-text-bundle-java-0.5.0.jar /path/to/repo /path/to/out
 ```
 
 Include Markdown docs and show diagnostics:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar . out/text-bundle --include "docs/**/*.md" --verbose
+java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --include "docs/**/*.md" --verbose
 ```
 
 Use smaller bundle parts:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0-SNAPSHOT.jar . out/text-bundle --max-chars 60000
+java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --max-chars 60000
 ```
 
 ## Development
