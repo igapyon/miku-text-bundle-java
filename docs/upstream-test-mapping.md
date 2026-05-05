@@ -1,19 +1,49 @@
 # Upstream Test Mapping
 
-The upstream test source or test intent for `miku-text-bundle` has not been fixed yet.
+This document tracks `upstream test intent -> Java test` mapping for the miku-text-bundle straight conversion.
 
-When the upstream source is selected, record mappings in this shape:
+Upstream repository:
+
+- https://github.com/igapyon/miku-text-bundle
 
 ```text
 upstream test / intent:
-  <upstream test name or behavior>
+  test/cli.test.ts
 
 java tests:
-  <JavaTestClass.testMethod>
+  jp.igapyon.mikutextbundle.cli.MikuTextBundleCliTest
 
 fixtures:
-  <fixture path>
+  inline argv arrays
 
 focused regression:
-  mvn test -Dtest=<JavaTestClass>
+  mvn test -Dtest=MikuTextBundleCliTest
+```
+
+```text
+upstream test / intent:
+  test/match.test.ts
+
+java tests:
+  jp.igapyon.mikutextbundle.match.PatternMatcherTest
+
+fixtures:
+  inline path and pattern strings
+
+focused regression:
+  mvn test -Dtest=PatternMatcherTest
+```
+
+```text
+upstream test / intent:
+  test/bundler.test.ts
+
+java tests:
+  jp.igapyon.mikutextbundle.coreapi.TextBundlerTest
+
+fixtures:
+  temporary files from JUnit TempDir
+
+focused regression:
+  mvn test -Dtest=TextBundlerTest
 ```
