@@ -7,8 +7,10 @@ This repository follows the miku-soft Java application direction.
 - Single-module Maven Java application.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
-- Core package root: `jp.igapyon.mikutextbundle.core`.
+- Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
 - Primary verification command: `mvn test`.
+- Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
+- Local upstream checkout: `workplace/miku-text-bundle-devel/`.
 
 ## Boundaries
 
@@ -17,6 +19,11 @@ This repository follows the miku-soft Java application direction.
 - `main(String[] args)` is only the outer process boundary.
 - Product behavior must not be hidden in repository docs or skill instructions.
 
-## Pending Product Contract
+## Focused Regression Commands
 
-The `miku-text-bundle` input/output contract is not yet defined in this skeleton. Until that is settled, the CLI intentionally supports only `--help` and `--version`.
+```sh
+mvn test
+mvn test -Dtest=MikuTextBundleCliTest
+mvn test -Dtest=TextBundlerTest
+mvn test -Dtest=PatternMatcherTest
+```

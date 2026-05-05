@@ -6,8 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
+
+import jp.igapyon.mikutextbundle.model.CliOptions;
 
 class MikuTextBundleCliTest {
     @Test
@@ -15,7 +18,8 @@ class MikuTextBundleCliTest {
         CliResult result = run("--help");
 
         assertEquals(0, result.exitCode);
-        assertTrue(result.out.contains("Usage: miku-text-bundle-java"));
+        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+        assertTrue(result.out.contains("--max-chars"));
         assertEquals("", result.err);
     }
 
@@ -24,17 +28,43 @@ class MikuTextBundleCliTest {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("miku-text-bundle-java 0.1.0-SNAPSHOT\n", result.out);
+        assertEquals("miku-text-bundle-java 0.5.0\n", result.out);
         assertEquals("", result.err);
     }
 
     @Test
-    void unknownCommandReturnsUsageError() {
-        CliResult result = run("bundle");
+    void parseArgsParsesPositionalArgumentsAndOptions() throws Exception {
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { ".", "out", "--max-chars", "1000",
+                "--max-input-file-bytes", "2000", "--include", "docs/**/*.md,package.json", "--exclude", "test/**",
+                "--verbose" });
 
-        assertEquals(2, result.exitCode);
+        assertEquals(".", options.inputDirectory);
+        assertEquals("out", options.outputDirectory);
+        assertEquals(1000, options.maxChars);
+        assertEquals(2000, options.maxInputFileBytes);
+        assertEquals(Arrays.asList("docs/**/*.md", "package.json"), options.includePatterns);
+        assertEquals(Arrays.asList("test/**"), options.excludePatterns);
+        assertTrue(options.verbose);
+    }
+
+    @Test
+    void parseArgsParsesNamedDirectoryOptions() throws Exception {
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input-directory", ".", "--output-directory", "out" });
+
+        assertEquals(".", options.inputDirectory);
+        assertEquals("out", options.outputDirectory);
+        assertEquals(120000, options.maxChars);
+        assertEquals(1000000, options.maxInputFileBytes);
+    }
+
+    @Test
+    void missingInputDirectoryReturnsUsageError() {
+        CliResult result = run();
+
+        assertEquals(1, result.exitCode);
         assertEquals("", result.out);
-        assertTrue(result.err.contains("Unknown option or command: bundle"));
+        assertTrue(result.err.contains("Please specify an input directory."));
+        assertTrue(result.err.contains("miku-text-bundle <inputDir>"));
     }
 
     private CliResult run(String... args) {
