@@ -1,0 +1,6 @@
+.DS_Store
+target/
+.vscode/mcp.json
+.codex/skills/
+workplace/*
+!workplace/.gitkeep
