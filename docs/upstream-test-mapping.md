@@ -26,15 +26,18 @@ upstream test / intent:
 
 java tests:
   jp.igapyon.mikutextbundle.cli.MikuTextBundleCliIntegrationTest
+  jp.igapyon.mikutextbundle.cli.MikuTextBundleCliJarIT
 
 fixtures:
   temporary files from JUnit TempDir
 
 focused regression:
   mvn test -Dtest=MikuTextBundleCliIntegrationTest
+  mvn verify -Dit.test=MikuTextBundleCliJarIT
 
 notes:
   - Java test calls the CLI run boundary directly instead of launching a packaged jar.
+  - Packaged jar process behavior is covered separately by the Failsafe integration test.
 ```
 
 ```text
@@ -85,12 +88,19 @@ upstream test / intent:
 
 java tests:
   jp.igapyon.mikutextbundle.coreapi.TextBundlerTest
+  jp.igapyon.mikutextbundle.coreapi.UpstreamParityTest
 
 fixtures:
   temporary files from JUnit TempDir
+  src/test/resources/fixtures/product-repo
 
 focused regression:
   mvn test -Dtest=TextBundlerTest
+  mvn test -Dtest=UpstreamParityTest
+
+notes:
+  - UpstreamParityTest compares generated Markdown with local `workplace/miku-text-bundle-devel/dist/main.js`.
+  - The parity test is skipped when Node or the local upstream checkout is unavailable.
 ```
 
 ```text
