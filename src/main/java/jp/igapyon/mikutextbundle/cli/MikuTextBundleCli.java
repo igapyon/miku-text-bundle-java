@@ -37,7 +37,7 @@ public final class MikuTextBundleCli {
             return 0;
         } catch (Exception ex) {
             err.println("error: " + ex.getMessage());
-            printHelp(err);
+            printHelp(out);
             return 1;
         }
     }

@@ -24,6 +24,10 @@ This repository follows the miku-soft Java application direction.
 ```sh
 mvn test
 mvn test -Dtest=MikuTextBundleCliTest
+mvn test -Dtest=MikuTextBundleCliIntegrationTest
 mvn test -Dtest=TextBundlerTest
 mvn test -Dtest=PatternMatcherTest
+mvn test -Dtest=MarkdownTest
+mvn test -Dtest=PathUtilsTest
+mvn test -Dtest=PomMetadataTest
 ```

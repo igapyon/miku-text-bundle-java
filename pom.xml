@@ -10,7 +10,7 @@
   <packaging>jar</packaging>
 
   <name>miku-text-bundle-java</name>
-  <description>Java CLI skeleton for the miku-text-bundle project.</description>
+  <description>Java straight-conversion CLI for the miku-text-bundle project.</description>
   <url>https://github.com/igapyon/miku-text-bundle-java</url>
 
   <licenses>

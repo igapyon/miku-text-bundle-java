@@ -25,6 +25,15 @@ class PatternMatcherTest {
     }
 
     @Test
+    void matchesBasenameGlobsAtAnyDepth() {
+        List<String> patterns = PatternMatcher.parseGitignore("*.log\n*.tmp\n");
+
+        assertTrue(PatternMatcher.matchesGitignore("debug.log", patterns));
+        assertTrue(PatternMatcher.matchesGitignore("logs/debug.log", patterns));
+        assertFalse(PatternMatcher.matchesGitignore("src/main.ts", patterns));
+    }
+
+    @Test
     void matchesRootedPatternsOnlyFromRepositoryRoot() {
         List<String> patterns = PatternMatcher.parseGitignore("/dist/\n/root-only.ts\n");
 
@@ -32,5 +41,14 @@ class PatternMatcherTest {
         assertFalse(PatternMatcher.matchesGitignore("pkg/dist/main.js", patterns));
         assertTrue(PatternMatcher.matchesGitignore("root-only.ts", patterns));
         assertFalse(PatternMatcher.matchesGitignore("src/root-only.ts", patterns));
+    }
+
+    @Test
+    void matchesNestedPathGlobs() {
+        List<String> patterns = PatternMatcher.parseGitignore("generated/**/*.ts\n");
+
+        assertTrue(PatternMatcher.matchesGitignore("generated/main.ts", patterns));
+        assertTrue(PatternMatcher.matchesGitignore("generated/deep/main.ts", patterns));
+        assertTrue(PatternMatcher.matchesGitignore("src/generated/main.ts", patterns));
     }
 }
