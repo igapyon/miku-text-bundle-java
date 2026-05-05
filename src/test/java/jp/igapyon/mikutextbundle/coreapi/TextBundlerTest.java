@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -199,6 +201,34 @@ class TextBundlerTest {
         assertTrue(part.contains("```ts\nconst value = 1;\n\n```"));
     }
 
+    @Test
+    void generatesStableBundleFromProductFixture() throws Exception {
+        copyResourceDirectory("fixtures/product-repo", tempDir);
+        CliOptions options = bundleOptions();
+        options.includePatterns.add("docs/**/*.md");
+        options.excludePatterns.add("docs/skip.md");
+
+        BundleResult result = create(options, new Date(1777914060000L));
+
+        assertEquals(5, result.filesCollected);
+        assertEquals(0, result.filesSkipped);
+        assertEquals(1, result.partsGenerated);
+
+        String index = read(result.indexPath);
+        String part = read(result.partPaths.get(0));
+
+        assertTrue(index.contains("| `text-bundle-001.md` | 5 |"));
+        assertTrue(index.contains("`docs/extra.md`"));
+        assertFalse(index.contains("docs/skip.md"));
+        assertTrue(index.contains("| `src/main.ts` | 2 | TODO | // TODO: stabilize fixture behavior |"));
+
+        assertTrue(part.indexOf("### docs/extra.md") < part.indexOf("### README.md"));
+        assertTrue(part.indexOf("### README.md") < part.indexOf("### src/Alpha.java"));
+        assertTrue(part.indexOf("### src/Alpha.java") < part.indexOf("### src/main.ts"));
+        assertTrue(part.indexOf("### src/main.ts") < part.indexOf("### TODO.md"));
+        assertTrue(part.contains("```java\npackage fixture;\n\npublic final class Alpha {\n}\n\n```"));
+    }
+
     private BundleResult create(CliOptions options, Date now) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         return new TextBundler().createTextBundle(options, now, new PrintStream(out));
@@ -214,6 +244,31 @@ class TextBundlerTest {
         Path path = tempDir.resolve(relativePath);
         Files.createDirectories(path.getParent());
         Files.write(path, content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void copyResourceDirectory(String resourceName, Path destination) throws IOException, URISyntaxException {
+        URL resource = Thread.currentThread().getContextClassLoader().getResource(resourceName);
+        if (resource == null) {
+            throw new IllegalArgumentException("Test resource not found: " + resourceName);
+        }
+        Path sourceRoot = java.nio.file.Paths.get(resource.toURI());
+        java.util.List<Path> paths = new java.util.ArrayList<Path>();
+        try (java.util.stream.Stream<Path> stream = Files.walk(sourceRoot)) {
+            java.util.Iterator<Path> iterator = stream.iterator();
+            while (iterator.hasNext()) {
+                paths.add(iterator.next());
+            }
+        }
+        for (Path sourcePath : paths) {
+            Path relativePath = sourceRoot.relativize(sourcePath);
+            Path targetPath = destination.resolve(relativePath.toString());
+            if (Files.isDirectory(sourcePath)) {
+                Files.createDirectories(targetPath);
+            } else {
+                Files.createDirectories(targetPath.getParent());
+                Files.copy(sourcePath, targetPath);
+            }
+        }
     }
 
     private String read(String path) throws IOException {

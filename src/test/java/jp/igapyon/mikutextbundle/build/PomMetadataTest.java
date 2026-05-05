@@ -32,6 +32,8 @@ class PomMetadataTest {
         assertTrue(pom.contains("maven-shade-plugin"));
         assertTrue(pom.contains("jp.igapyon.mikutextbundle.cli.MikuTextBundleCli"));
         assertTrue(pom.contains("maven-source-plugin"));
+        assertTrue(pom.contains("maven-failsafe-plugin"));
+        assertTrue(pom.contains("project.build.finalName"));
     }
 
     private String text(Document document, String tagName) {

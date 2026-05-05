@@ -75,6 +75,33 @@ class MikuTextBundleCliTest {
         assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
     }
 
+    @Test
+    void missingOptionValueReturnsUsageError() {
+        CliResult result = run("--input-directory");
+
+        assertEquals(1, result.exitCode);
+        assertTrue(result.err.contains("Please specify a value for --input-directory."));
+        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+    }
+
+    @Test
+    void invalidPositiveIntegerReturnsUsageError() {
+        CliResult result = run(".", "--max-input-file-bytes", "not-a-number");
+
+        assertEquals(1, result.exitCode);
+        assertTrue(result.err.contains("--max-input-file-bytes must be a positive integer."));
+        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+    }
+
+    @Test
+    void unexpectedPositionalArgumentReturnsUsageError() {
+        CliResult result = run(".", "out", "extra");
+
+        assertEquals(1, result.exitCode);
+        assertTrue(result.err.contains("Unexpected positional argument: extra"));
+        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+    }
+
     private CliResult run(String... args) {
         ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
         ByteArrayOutputStream errBytes = new ByteArrayOutputStream();

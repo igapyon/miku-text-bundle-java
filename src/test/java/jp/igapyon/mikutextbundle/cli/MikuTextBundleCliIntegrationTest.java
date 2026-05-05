@@ -75,6 +75,49 @@ class MikuTextBundleCliIntegrationTest {
         assertTrue(result.out.contains("Usage:"));
     }
 
+    @Test
+    void namedDirectoryOptionsGenerateFilesAndVerboseDiagnostics() throws Exception {
+        Path output = tempDir.resolve("named-out");
+        write("README.md", "# README\n");
+        write("src/main.ts", "const value = 1;\n");
+
+        CliResult result = run("--input-directory", tempDir.toString(), "--output-directory", output.toString(),
+                "--verbose");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("collected=2"));
+        assertTrue(result.out.contains("skipped=0"));
+        assertTrue(result.out.contains("parts=1"));
+        assertTrue(result.out.contains("generated: " + output.resolve(INDEX_FILE_NAME)));
+        assertTrue(result.out.contains("completed: 1 part(s), 2 file(s) collected"));
+        assertTrue(Files.isRegularFile(output.resolve(INDEX_FILE_NAME)));
+        assertTrue(Files.isRegularFile(output.resolve(PROMPT_FILE_NAME)));
+        assertTrue(Files.isRegularFile(output.resolve(FIRST_PART_FILE_NAME)));
+        assertEquals("", result.err);
+    }
+
+    @Test
+    void invalidNumericOptionReturnsUsageErrorThroughCli() throws Exception {
+        write("README.md", "# README\n");
+
+        CliResult result = run(tempDir.toString(), "--max-chars", "0");
+
+        assertEquals(1, result.exitCode);
+        assertTrue(result.err.contains("--max-chars must be a positive integer."));
+        assertTrue(result.out.contains("Usage:"));
+    }
+
+    @Test
+    void missingOptionValueReturnsUsageErrorThroughCli() throws Exception {
+        write("README.md", "# README\n");
+
+        CliResult result = run(tempDir.toString(), "--include");
+
+        assertEquals(1, result.exitCode);
+        assertTrue(result.err.contains("Please specify a value for --include."));
+        assertTrue(result.out.contains("Usage:"));
+    }
+
     private CliResult run(String... args) {
         ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
         ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
