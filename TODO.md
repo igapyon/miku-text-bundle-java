@@ -4,7 +4,8 @@
 
 - Add fixtures for deterministic product behavior.
 - Expand CLI tests to cover product commands, generated files, diagnostics, and exit codes.
-- Compare generated Markdown against upstream fixtures for byte-level parity where practical.
+- Automate parity comparison with upstream fixtures where practical.
+- Add packaged-jar process tests if release packaging needs a separate verification path.
 
 ## Packaging
 

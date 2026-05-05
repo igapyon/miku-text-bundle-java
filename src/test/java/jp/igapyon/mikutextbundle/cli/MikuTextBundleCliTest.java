@@ -62,9 +62,17 @@ class MikuTextBundleCliTest {
         CliResult result = run();
 
         assertEquals(1, result.exitCode);
-        assertEquals("", result.out);
         assertTrue(result.err.contains("Please specify an input directory."));
-        assertTrue(result.err.contains("miku-text-bundle <inputDir>"));
+        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+    }
+
+    @Test
+    void unknownOptionReturnsUsageError() {
+        CliResult result = run(".", "--unknown");
+
+        assertEquals(1, result.exitCode);
+        assertTrue(result.err.contains("Unknown argument: --unknown"));
+        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
     }
 
     private CliResult run(String... args) {

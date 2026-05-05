@@ -1,7 +1,5 @@
 package jp.igapyon.mikutextbundle.coreapi;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
@@ -162,7 +160,7 @@ public class TextBundler {
         }
         Collections.sort(result, new Comparator<Path>() {
             public int compare(Path left, Path right) {
-                return relativeInputPath(inputPath, left).compareTo(relativeInputPath(inputPath, right));
+                return comparePathLikeUpstream(relativeInputPath(inputPath, left), relativeInputPath(inputPath, right));
             }
         });
         return result;
@@ -215,7 +213,7 @@ public class TextBundler {
         }
         Collections.sort(entries, new Comparator<Path>() {
             public int compare(Path left, Path right) {
-                return left.getFileName().toString().compareTo(right.getFileName().toString());
+                return comparePathLikeUpstream(left.getFileName().toString(), right.getFileName().toString());
             }
         });
 
@@ -473,6 +471,14 @@ public class TextBundler {
 
     private String relativeInputPath(Path inputPath, Path filePath) {
         return PathUtils.toPosixPath(inputPath.relativize(filePath).toString());
+    }
+
+    private int comparePathLikeUpstream(String left, String right) {
+        int caseInsensitive = left.compareToIgnoreCase(right);
+        if (caseInsensitive != 0) {
+            return caseInsensitive;
+        }
+        return left.compareTo(right);
     }
 
     private static final class CollectedFilesResult {
