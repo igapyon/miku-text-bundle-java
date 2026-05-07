@@ -18,6 +18,10 @@ fixtures:
 
 focused regression:
   mvn test -Dtest=MikuTextBundleCliTest
+
+notes:
+  - CLI encoding option coverage maps upstream `--encoding` and `--encoding-extension` parser tests.
+  - Java uses `SupportedEncoding` enum values instead of TypeScript string union literals.
 ```
 
 ```text
@@ -99,6 +103,8 @@ focused regression:
   mvn test -Dtest=UpstreamParityTest
 
 notes:
+  - Extension-specific and default Shift_JIS decoding cases map the upstream explicit input encoding behavior.
+  - Java uses JDK Charset decoding instead of upstream iconv-lite.
   - UpstreamParityTest compares generated Markdown with local `workplace/miku-text-bundle-devel/dist/main.js`.
   - The parity test is skipped when Node or the local upstream checkout is unavailable.
 ```

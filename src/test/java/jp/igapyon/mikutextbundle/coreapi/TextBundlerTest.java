@@ -73,6 +73,34 @@ class TextBundlerTest {
     }
 
     @Test
+    void usesExtensionEncodingRulesForShiftJisFiles() throws Exception {
+        write("src/Legacy.java", "こんにちは\n", java.nio.charset.Charset.forName("Shift_JIS"));
+        CliOptions options = bundleOptions();
+        options.encoding.extensions.put(".java", jp.igapyon.mikutextbundle.model.SupportedEncoding.SHIFT_JIS);
+
+        BundleResult result = create(options, new Date(1777913880000L));
+
+        String part = read(result.partPaths.get(0));
+        assertEquals(1, result.filesCollected);
+        assertEquals(0, result.filesSkipped);
+        assertTrue(part.contains("こんにちは"));
+    }
+
+    @Test
+    void usesDefaultEncodingWhenNoExtensionRuleMatches() throws Exception {
+        write("README.md", "# 説明\n", java.nio.charset.Charset.forName("Shift_JIS"));
+        CliOptions options = bundleOptions();
+        options.encoding.defaultEncoding = jp.igapyon.mikutextbundle.model.SupportedEncoding.SHIFT_JIS;
+
+        BundleResult result = create(options, new Date(1777913940000L));
+
+        String part = read(result.partPaths.get(0));
+        assertEquals(1, result.filesCollected);
+        assertEquals(0, result.filesSkipped);
+        assertTrue(part.contains("# 説明"));
+    }
+
+    @Test
     void splitsOversizedFilesAndWritesWarningsOutsideCodeFences() throws Exception {
         write("src/large.ts", "line1\nline2\nline3\nline4\n");
         CliOptions options = bundleOptions();
@@ -241,9 +269,13 @@ class TextBundlerTest {
     }
 
     private void write(String relativePath, String content) throws IOException {
+        write(relativePath, content, StandardCharsets.UTF_8);
+    }
+
+    private void write(String relativePath, String content, java.nio.charset.Charset charset) throws IOException {
         Path path = tempDir.resolve(relativePath);
         Files.createDirectories(path.getParent());
-        Files.write(path, content.getBytes(StandardCharsets.UTF_8));
+        Files.write(path, content.getBytes(charset));
     }
 
     private void copyResourceDirectory(String resourceName, Path destination) throws IOException, URISyntaxException {

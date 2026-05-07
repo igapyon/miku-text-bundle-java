@@ -5,6 +5,7 @@ import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -30,6 +31,7 @@ import jp.igapyon.mikutextbundle.model.CliOptions;
 import jp.igapyon.mikutextbundle.model.CollectedFile;
 import jp.igapyon.mikutextbundle.model.Marker;
 import jp.igapyon.mikutextbundle.model.SkippedFile;
+import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 import jp.igapyon.mikutextbundle.pathutils.PathUtils;
 
 public class TextBundler {
@@ -133,9 +135,10 @@ public class TextBundler {
             }
 
             byte[] bytes = Files.readAllBytes(filePath);
-            String content = decodeUtf8(bytes);
+            SupportedEncoding encoding = selectEncoding(relativePath, options);
+            String content = decodeText(bytes, encoding);
             if (content == null) {
-                skipped.add(skippedForUnreadableFile(relativePath));
+                skipped.add(skippedForUnreadableFile(relativePath, encoding));
                 continue;
             }
 
@@ -256,14 +259,36 @@ public class TextBundler {
         return false;
     }
 
-    private String decodeUtf8(byte[] bytes) {
+    private SupportedEncoding selectEncoding(String relativePath, CliOptions options) {
+        if (options.encoding == null) {
+            return SupportedEncoding.UTF_8;
+        }
+        SupportedEncoding extensionEncoding = options.encoding.extensions.get(finalExtension(relativePath));
+        if (extensionEncoding != null) {
+            return extensionEncoding;
+        }
+        return options.encoding.defaultEncoding == null ? SupportedEncoding.UTF_8 : options.encoding.defaultEncoding;
+    }
+
+    private String finalExtension(String relativePath) {
+        String normalized = PathUtils.toPosixPath(relativePath);
+        int slashIndex = normalized.lastIndexOf('/');
+        int dotIndex = normalized.lastIndexOf('.');
+        if (dotIndex <= slashIndex || dotIndex == normalized.length() - 1) {
+            return "";
+        }
+        return normalized.substring(dotIndex);
+    }
+
+    private String decodeText(byte[] bytes, SupportedEncoding encoding) {
         for (byte b : bytes) {
             if (b == 0) {
                 return null;
             }
         }
         try {
-            CharBuffer chars = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+            Charset charset = Charset.forName(encoding.charsetName);
+            CharBuffer chars = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
                     .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes));
             return chars.toString();
         } catch (CharacterCodingException ex) {
@@ -315,10 +340,10 @@ public class TextBundler {
         return file;
     }
 
-    private SkippedFile skippedForUnreadableFile(String relativePath) {
+    private SkippedFile skippedForUnreadableFile(String relativePath, SupportedEncoding encoding) {
         SkippedFile file = new SkippedFile();
         file.relativePath = relativePath;
-        file.reason = "UTF-8 として読めない、またはバイナリと判定したためスキップしました。";
+        file.reason = encoding.displayName + " として読めない、またはバイナリと判定したためスキップしました。";
         return file;
     }
 

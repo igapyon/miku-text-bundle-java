@@ -20,6 +20,13 @@ This repository follows the miku-soft Java application direction.
 - `main(String[] args)` is only the outer process boundary.
 - Product behavior must not be hidden in repository docs or skill instructions.
 
+## Encoding Policy
+
+- Input decoding supports explicit `utf-8` and `shift_jis` selection.
+- The default encoding is `utf-8`.
+- Extension rules such as `.java=shift_jis` override the default encoding for exact final extensions.
+- The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in the index Markdown.
+
 ## Packaging
 
 - Release packaging currently targets the executable shaded jar.

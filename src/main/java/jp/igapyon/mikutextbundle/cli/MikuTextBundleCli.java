@@ -7,7 +7,9 @@ import java.util.List;
 import jp.igapyon.mikutextbundle.coreapi.BundleResult;
 import jp.igapyon.mikutextbundle.coreapi.TextBundler;
 import jp.igapyon.mikutextbundle.core.MikuTextBundle;
+import jp.igapyon.mikutextbundle.model.EncodingOptions;
 import jp.igapyon.mikutextbundle.model.CliOptions;
+import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 
 /**
  * Command line entrypoint for miku-text-bundle-java.
@@ -59,6 +61,7 @@ public final class MikuTextBundleCli {
         options.outputDirectory = state.outputDirectory;
         options.maxChars = state.maxChars;
         options.maxInputFileBytes = state.maxInputFileBytes;
+        options.encoding = state.encoding;
         options.includePatterns = state.includePatterns;
         options.excludePatterns = state.excludePatterns;
         options.verbose = state.verbose;
@@ -67,8 +70,8 @@ public final class MikuTextBundleCli {
 
     public static void printHelp(PrintStream out) {
         out.println("Usage:");
-        out.println("  miku-text-bundle <inputDir> [outputDir] [--max-chars 120000] [--max-input-file-bytes 1000000] [--include \"glob\"] [--exclude \"glob\"] [--verbose]");
-        out.println("  miku-text-bundle --input-directory <dir> [--output-directory <dir>] [--max-chars 120000] [--max-input-file-bytes 1000000]");
+        out.println("  miku-text-bundle <inputDir> [outputDir] [--max-chars 120000] [--max-input-file-bytes 1000000] [--encoding utf-8|shift_jis] [--encoding-extension \".java=shift_jis\"] [--include \"glob\"] [--exclude \"glob\"] [--verbose]");
+        out.println("  miku-text-bundle --input-directory <dir> [--output-directory <dir>] [--max-chars 120000] [--max-input-file-bytes 1000000] [--encoding utf-8|shift_jis]");
         out.println();
         out.println("Description:");
         out.println("  Collect repository text files and generate split Markdown bundles for");
@@ -80,6 +83,7 @@ public final class MikuTextBundleCli {
         ParseState state = new ParseState();
         state.maxChars = 120000;
         state.maxInputFileBytes = 1000000;
+        state.encoding = new EncodingOptions();
         state.includePatterns = new ArrayList<String>();
         state.excludePatterns = new ArrayList<String>();
         state.positional = new ArrayList<String>();
@@ -116,6 +120,18 @@ public final class MikuTextBundleCli {
         if ("--max-input-file-bytes".equals(arg)) {
             state.maxInputFileBytes = parsePositiveInteger(readRequiredOptionValue(argv, index, "--max-input-file-bytes"),
                     "--max-input-file-bytes");
+            return index + 1;
+        }
+
+        if ("--encoding".equals(arg)) {
+            state.encoding.defaultEncoding = SupportedEncoding.parse(readRequiredOptionValue(argv, index, "--encoding"),
+                    "--encoding");
+            return index + 1;
+        }
+
+        if ("--encoding-extension".equals(arg)) {
+            state.encoding.extensions.putAll(parseEncodingExtensions(readRequiredOptionValue(argv, index,
+                    "--encoding-extension")));
             return index + 1;
         }
 
@@ -161,6 +177,24 @@ public final class MikuTextBundleCli {
         return patterns;
     }
 
+    private static java.util.Map<String, SupportedEncoding> parseEncodingExtensions(String value) {
+        java.util.Map<String, SupportedEncoding> extensions = new java.util.LinkedHashMap<String, SupportedEncoding>();
+        for (String item : parsePatternList(value)) {
+            int separatorIndex = item.indexOf('=');
+            if (separatorIndex <= 0 || separatorIndex == item.length() - 1) {
+                throw new IllegalArgumentException("--encoding-extension entries must use .ext=encoding format.");
+            }
+
+            String extension = item.substring(0, separatorIndex).trim();
+            String encoding = item.substring(separatorIndex + 1).trim();
+            if (!extension.startsWith(".") || extension.indexOf('/') >= 0 || extension.indexOf('\\') >= 0) {
+                throw new IllegalArgumentException("--encoding-extension keys must be exact extensions with a leading dot.");
+            }
+            extensions.put(extension, SupportedEncoding.parse(encoding, "--encoding-extension"));
+        }
+        return extensions;
+    }
+
     private static int parsePositiveInteger(String value, String optionName) {
         try {
             int parsed = Integer.parseInt(value);
@@ -192,6 +226,7 @@ public final class MikuTextBundleCli {
         private String outputDirectory;
         private int maxChars;
         private int maxInputFileBytes;
+        private EncodingOptions encoding;
         private List<String> includePatterns;
         private List<String> excludePatterns;
         private boolean verbose;
