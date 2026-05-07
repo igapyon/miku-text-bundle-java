@@ -23,13 +23,13 @@ mvn package
 The executable jar is created under `target/`.
 
 ```text
-target/miku-text-bundle-java-0.5.0.jar
+target/miku-text-bundle-java-0.5.3.jar
 ```
 
 ## Quick Start
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar .
+java -jar target/miku-text-bundle-java-0.5.3.jar .
 ```
 
 When the output directory is omitted, files are written under:
@@ -41,19 +41,19 @@ workplace/miku-text-bundle/<yyyyMMddHHmm>/
 To choose the output directory explicitly:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle
+java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle
 ```
 
 ## CLI Usage
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar <inputDir> [outputDir] [options]
+java -jar target/miku-text-bundle-java-0.5.3.jar <inputDir> [outputDir] [options]
 ```
 
 Named directory options are also supported:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar --input-directory <dir> --output-directory <dir>
+java -jar target/miku-text-bundle-java-0.5.3.jar --input-directory <dir> --output-directory <dir>
 ```
 
 Options:
@@ -62,6 +62,8 @@ Options:
 | --- | --- | --- |
 | `--max-chars <number>` | Approximate maximum characters per bundle part. Oversized files may be split. | `120000` |
 | `--max-input-file-bytes <number>` | Skip input files larger than this byte size. | `1000000` |
+| `--encoding utf-8\|shift_jis` | Set the default input file encoding. | `utf-8` |
+| `--encoding-extension ".java=shift_jis"` | Set per-extension input encodings. Multiple rules can be comma-separated. | none |
 | `--include <glob>` | Add comma-separated include patterns, such as `docs/**/*.md,package.json`. | none |
 | `--exclude <glob>` | Add comma-separated exclude patterns. | none |
 | `--verbose` | Print collection diagnostics. | off |
@@ -101,18 +103,30 @@ The tool skips:
 - Files ignored by the root `.gitignore`
 - Files matching `--exclude`
 - Files larger than `--max-input-file-bytes`
-- Binary or non-UTF-8 files
+- Binary files or files that cannot be decoded with the selected input encoding
+
+## Input Encoding
+
+The default input encoding is UTF-8. Use `--encoding shift_jis` to read collected files as Shift_JIS by default.
+
+Per-extension rules override the default encoding:
+
+```sh
+java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
+```
+
+Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in `text-bundle-000-index.md`.
 
 Use `--include` to add extra text files:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --include "docs/**/*.md,pom.xml"
+java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --include "docs/**/*.md,pom.xml"
 ```
 
 Use `--exclude` to remove matching files from the collected set:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --exclude "src/generated/**"
+java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --exclude "src/generated/**"
 ```
 
 ## Examples
@@ -120,25 +134,25 @@ java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --exclude "sr
 Bundle the current repository with the default output path:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar .
+java -jar target/miku-text-bundle-java-0.5.3.jar .
 ```
 
 Bundle a repository and write to a known directory:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar /path/to/repo /path/to/out
+java -jar target/miku-text-bundle-java-0.5.3.jar /path/to/repo /path/to/out
 ```
 
 Include Markdown docs and show diagnostics:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --include "docs/**/*.md" --verbose
+java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --include "docs/**/*.md" --verbose
 ```
 
 Use smaller bundle parts:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.0.jar . out/text-bundle --max-chars 60000
+java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --max-chars 60000
 ```
 
 ## Development

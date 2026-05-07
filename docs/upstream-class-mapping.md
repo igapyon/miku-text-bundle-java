@@ -22,9 +22,12 @@ java classes:
   jp.igapyon.mikutextbundle.model.BundleChunk
   jp.igapyon.mikutextbundle.model.BundlePart
   jp.igapyon.mikutextbundle.coreapi.BundleResult
+  jp.igapyon.mikutextbundle.model.EncodingOptions
+  jp.igapyon.mikutextbundle.model.SupportedEncoding
 
 notes:
   - POJO classes use public fields during the initial straight conversion.
+  - SupportedEncoding and EncodingOptions map the upstream explicit input encoding contract.
 ```
 
 ```text

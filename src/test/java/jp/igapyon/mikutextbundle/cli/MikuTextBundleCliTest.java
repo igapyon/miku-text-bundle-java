@@ -11,6 +11,7 @@ import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 import jp.igapyon.mikutextbundle.model.CliOptions;
+import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 
 class MikuTextBundleCliTest {
     @Test
@@ -28,7 +29,7 @@ class MikuTextBundleCliTest {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("miku-text-bundle-java 0.5.0\n", result.out);
+        assertEquals("miku-text-bundle-java 0.5.3\n", result.out);
         assertEquals("", result.err);
     }
 
@@ -42,6 +43,7 @@ class MikuTextBundleCliTest {
         assertEquals("out", options.outputDirectory);
         assertEquals(1000, options.maxChars);
         assertEquals(2000, options.maxInputFileBytes);
+        assertEquals(SupportedEncoding.UTF_8, options.encoding.defaultEncoding);
         assertEquals(Arrays.asList("docs/**/*.md", "package.json"), options.includePatterns);
         assertEquals(Arrays.asList("test/**"), options.excludePatterns);
         assertTrue(options.verbose);
@@ -55,6 +57,31 @@ class MikuTextBundleCliTest {
         assertEquals("out", options.outputDirectory);
         assertEquals(120000, options.maxChars);
         assertEquals(1000000, options.maxInputFileBytes);
+        assertEquals(SupportedEncoding.UTF_8, options.encoding.defaultEncoding);
+    }
+
+    @Test
+    void parseArgsParsesDefaultAndExtensionEncodingOptions() throws Exception {
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { ".", "--encoding", "shift_jis",
+                "--encoding-extension", ".ts=utf-8,.java=shift_jis" });
+
+        assertEquals(SupportedEncoding.SHIFT_JIS, options.encoding.defaultEncoding);
+        assertEquals(SupportedEncoding.UTF_8, options.encoding.extensions.get(".ts"));
+        assertEquals(SupportedEncoding.SHIFT_JIS, options.encoding.extensions.get(".java"));
+    }
+
+    @Test
+    void invalidEncodingOptionsReturnUsageError() {
+        CliResult unsupported = run(".", "--encoding", "latin1");
+        CliResult missingDot = run(".", "--encoding-extension", "java=shift_jis");
+        CliResult unsupportedExtension = run(".", "--encoding-extension", ".java=latin1");
+
+        assertEquals(1, unsupported.exitCode);
+        assertTrue(unsupported.err.contains("--encoding must be one of"));
+        assertEquals(1, missingDot.exitCode);
+        assertTrue(missingDot.err.contains("leading dot"));
+        assertEquals(1, unsupportedExtension.exitCode);
+        assertTrue(unsupportedExtension.err.contains("--encoding-extension must be one of"));
     }
 
     @Test
