@@ -28,10 +28,13 @@ class MikuTextBundleCliIntegrationTest {
         write("README.md", "# README\n");
         write("src/main.ts", "const value = 1;\n");
 
-        CliResult result = run(tempDir.toString(), output.toString(), "--max-chars", "120000");
+        CliResult result = run("--input", tempDir.toString(), "--output", output.toString(), "--max-chars", "120000");
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("completed:"));
+        assertTrue(result.out.contains("file(s) skipped"));
+        assertTrue(result.out.contains("directories ignored"));
+        assertTrue(result.out.contains("file(s) ignored"));
         assertTrue(read(output.resolve(INDEX_FILE_NAME)).contains("src/main.ts"));
         assertTrue(read(output.resolve(FIRST_PART_FILE_NAME)).contains("### src/main.ts"));
         assertTrue(read(output.resolve(PROMPT_FILE_NAME)).contains("text-bundle-response.md"));
@@ -43,7 +46,7 @@ class MikuTextBundleCliIntegrationTest {
         write("README.md", "# README\n");
         write("docs/huge.md", repeat("x", 101));
 
-        CliResult result = run(tempDir.toString(), output.toString(), "--include", "docs/**/*.md",
+        CliResult result = run("--input", tempDir.toString(), "--output", output.toString(),
                 "--max-input-file-bytes", "100");
 
         String index = read(output.resolve(INDEX_FILE_NAME));
@@ -57,7 +60,8 @@ class MikuTextBundleCliIntegrationTest {
 
     @Test
     void invalidInputDirectoryReturnsUsageError() {
-        CliResult result = run(tempDir.resolve("missing").toString());
+        CliResult result = run("--input", tempDir.resolve("missing").toString(), "--output",
+                tempDir.resolve("out").toString());
 
         assertEquals(1, result.exitCode);
         assertTrue(result.err.contains("Input directory does not exist"));
@@ -68,7 +72,8 @@ class MikuTextBundleCliIntegrationTest {
     void unknownOptionReturnsUsageErrorThroughCli() throws Exception {
         write("README.md", "# README\n");
 
-        CliResult result = run(tempDir.toString(), "--unknown");
+        CliResult result = run("--input", tempDir.toString(), "--output", tempDir.resolve("out").toString(),
+                "--unknown");
 
         assertEquals(1, result.exitCode);
         assertTrue(result.err.contains("Unknown argument: --unknown"));
@@ -81,15 +86,16 @@ class MikuTextBundleCliIntegrationTest {
         write("README.md", "# README\n");
         write("src/main.ts", "const value = 1;\n");
 
-        CliResult result = run("--input-directory", tempDir.toString(), "--output-directory", output.toString(),
-                "--verbose");
+        CliResult result = run("--input", tempDir.toString(), "--output", output.toString(), "--verbose");
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("collected=2"));
         assertTrue(result.out.contains("skipped=0"));
         assertTrue(result.out.contains("parts=1"));
+        assertTrue(result.out.contains("ignoredDirectories=1"));
+        assertTrue(result.out.contains("ignoredByOutputDirectory=0"));
         assertTrue(result.out.contains("generated: " + output.resolve(INDEX_FILE_NAME)));
-        assertTrue(result.out.contains("completed: 1 part(s), 2 file(s) collected"));
+        assertTrue(result.out.contains("completed: 1 part(s), 2 file(s) collected, 0 file(s) skipped"));
         assertTrue(Files.isRegularFile(output.resolve(INDEX_FILE_NAME)));
         assertTrue(Files.isRegularFile(output.resolve(PROMPT_FILE_NAME)));
         assertTrue(Files.isRegularFile(output.resolve(FIRST_PART_FILE_NAME)));
@@ -100,7 +106,8 @@ class MikuTextBundleCliIntegrationTest {
     void invalidNumericOptionReturnsUsageErrorThroughCli() throws Exception {
         write("README.md", "# README\n");
 
-        CliResult result = run(tempDir.toString(), "--max-chars", "0");
+        CliResult result = run("--input", tempDir.toString(), "--output", tempDir.resolve("out").toString(),
+                "--max-chars", "0");
 
         assertEquals(1, result.exitCode);
         assertTrue(result.err.contains("--max-chars must be a positive integer."));
@@ -111,10 +118,11 @@ class MikuTextBundleCliIntegrationTest {
     void missingOptionValueReturnsUsageErrorThroughCli() throws Exception {
         write("README.md", "# README\n");
 
-        CliResult result = run(tempDir.toString(), "--include");
+        CliResult result = run("--input", tempDir.toString(), "--output", tempDir.resolve("out").toString(),
+                "--add-exclude-extension");
 
         assertEquals(1, result.exitCode);
-        assertTrue(result.err.contains("Please specify a value for --include."));
+        assertTrue(result.err.contains("Please specify a value for --add-exclude-extension."));
         assertTrue(result.out.contains("Usage:"));
     }
 

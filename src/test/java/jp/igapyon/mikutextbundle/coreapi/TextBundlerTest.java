@@ -12,6 +12,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Date;
 
 import org.junit.jupiter.api.Test;
@@ -24,12 +25,10 @@ class TextBundlerTest {
     Path tempDir;
 
     @Test
-    void choosesTimestampedOutputDirectoryAndSuffixesCollisions() throws Exception {
-        Date now = new Date(1777913520000L);
-        Path base = TextBundler.defaultOutputBase(tempDir, now);
-        Files.createDirectories(base);
+    void choosesExplicitOutputDirectory() {
+        Path output = tempDir.resolve("out");
 
-        assertEquals(base.toString() + "-1", TextBundler.chooseOutputDirectory(tempDir, null, now).toString());
+        assertEquals(output.toAbsolutePath().normalize().toString(), TextBundler.chooseOutputDirectory(output.toString()).toString());
     }
 
     @Test
@@ -37,13 +36,18 @@ class TextBundlerTest {
         write("README.md", "# README\n");
         write("TODO.md", "- TODO root item\n");
         write("src/main.ts", "const value = 1;\n// FIXME check later\n");
-        write(".hidden/secret.ts", "const hidden = true;\n");
+        write(".git/secret.ts", "const hidden = true;\n");
         write(".gitignore", "ignored.ts\n");
         write("src/ignored.ts", "const ignored = true;\n");
 
         BundleResult result = create(bundleOptions(), new Date(1777913520000L));
 
-        assertEquals(3, result.filesCollected);
+        assertEquals(4, result.filesCollected);
+        assertEquals(2, result.filesIgnored);
+        assertEquals(2, result.directoriesIgnored);
+        assertEquals(1, result.ignoredByDirectory);
+        assertEquals(1, result.ignoredByGitignore);
+        assertEquals(0, result.ignoredByOutputDirectory);
         assertEquals(1, result.partsGenerated);
 
         String index = read(result.indexPath);
@@ -52,7 +56,8 @@ class TextBundlerTest {
 
         assertTrue(index.contains("`src/main.ts`"));
         assertTrue(index.contains("FIXME"));
-        assertFalse(index.contains(".hidden"));
+        assertTrue(index.contains("`.gitignore`"));
+        assertFalse(index.contains(".git/secret.ts"));
         assertFalse(index.contains("ignored.ts"));
         assertTrue(part.contains("### src/main.ts"));
         assertTrue(part.contains("```ts"));
@@ -117,12 +122,11 @@ class TextBundlerTest {
     }
 
     @Test
-    void skipsExplicitlyIncludedFilesThatExceedInputByteLimit() throws Exception {
+    void skipsTextFilesThatExceedInputByteLimit() throws Exception {
         write("README.md", "# README\n");
         write("docs/huge.md", repeat("x", 101));
         CliOptions options = bundleOptions();
         options.maxInputFileBytes = 100;
-        options.includePatterns.add("docs/**/*.md");
 
         BundleResult result = create(options, new Date(1777913760000L));
 
@@ -136,30 +140,50 @@ class TextBundlerTest {
     }
 
     @Test
-    void honorsIncludeAndExcludePatternsWithoutBypassingHardExclusions() throws Exception {
+    void excludesKnownBinaryExtensionsBeforeReadingFiles() throws Exception {
         write("README.md", "# README\n");
-        write("docs/extra.md", "# Extra\n");
-        write("docs/skip.md", "# Skip\n");
-        write("src/main.ts", "const value = 1;\n");
-        write(".secret/extra.md", "# Secret\n");
-        write(".gitignore", "ignored.md\n");
-        write("docs/ignored.md", "# Ignored\n");
-        CliOptions options = bundleOptions();
-        options.includePatterns.add("docs/**/*.md");
-        options.includePatterns.add(".secret/**/*.md");
-        options.excludePatterns.add("docs/skip.md");
+        Path image = tempDir.resolve("assets/image.png");
+        Files.createDirectories(image.getParent());
+        Files.write(image, new byte[] { 0, 1, 2, 3 });
 
-        BundleResult result = create(options, new Date(1777913700000L));
+        BundleResult result = create(bundleOptions(), new Date(1777913700000L));
 
         String index = read(result.indexPath);
         String part = read(result.partPaths.get(0));
         assertTrue(index.contains("`README.md`"));
-        assertTrue(index.contains("`docs/extra.md`"));
-        assertFalse(index.contains("docs/skip.md"));
-        assertFalse(index.contains("docs/ignored.md"));
-        assertFalse(index.contains(".secret"));
-        assertTrue(part.indexOf("### docs/extra.md") < part.indexOf("### README.md"));
-        assertTrue(part.indexOf("### README.md") < part.indexOf("### src/main.ts"));
+        assertFalse(index.contains("assets/image.png"));
+        assertFalse(part.contains("assets/image.png"));
+        assertEquals(0, result.filesSkipped);
+        assertEquals(1, result.filesIgnored);
+        assertEquals(1, result.ignoredByExtension);
+    }
+
+    @Test
+    void usesCustomizedExcludeExtensionAndDirectoryLists() throws Exception {
+        write("README.md", "# README\n");
+        Path pdf = tempDir.resolve("assets/document.pdf");
+        Files.createDirectories(pdf.getParent());
+        Files.write(pdf, new byte[] { 0, 1, 2, 3 });
+        write("notes/skip.md", "# Skip\n");
+        write("dist/generated.md", "# Generated\n");
+        CliOptions options = bundleOptions();
+        options.excludeExtensions = new ArrayList<String>();
+        options.excludeDirectories = new ArrayList<String>();
+        options.excludeExtensions.add(".png");
+        options.excludeDirectories.add("notes");
+
+        BundleResult result = create(options, new Date(1777913700000L));
+
+        String index = read(result.indexPath);
+        assertTrue(index.contains("`README.md`"));
+        assertTrue(index.contains("`dist/generated.md`"));
+        assertTrue(index.contains("`assets/document.pdf`"));
+        assertTrue(index.contains("UTF-8"));
+        assertFalse(index.contains("notes/skip.md"));
+        assertEquals(1, result.filesIgnored);
+        assertEquals(2, result.directoriesIgnored);
+        assertEquals(1, result.ignoredByDirectory);
+        assertEquals(0, result.ignoredByOutputDirectory);
     }
 
     @Test
@@ -233,24 +257,24 @@ class TextBundlerTest {
     void generatesStableBundleFromProductFixture() throws Exception {
         copyResourceDirectory("fixtures/product-repo", tempDir);
         CliOptions options = bundleOptions();
-        options.includePatterns.add("docs/**/*.md");
-        options.excludePatterns.add("docs/skip.md");
 
         BundleResult result = create(options, new Date(1777914060000L));
 
-        assertEquals(5, result.filesCollected);
+        assertEquals(6, result.filesCollected);
+        assertEquals(0, result.filesIgnored);
         assertEquals(0, result.filesSkipped);
         assertEquals(1, result.partsGenerated);
 
         String index = read(result.indexPath);
         String part = read(result.partPaths.get(0));
 
-        assertTrue(index.contains("| `text-bundle-001.md` | 5 |"));
+        assertTrue(index.contains("| `text-bundle-001.md` | 6 |"));
         assertTrue(index.contains("`docs/extra.md`"));
-        assertFalse(index.contains("docs/skip.md"));
+        assertTrue(index.contains("`docs/skip.md`"));
         assertTrue(index.contains("| `src/main.ts` | 2 | TODO | // TODO: stabilize fixture behavior |"));
 
         assertTrue(part.indexOf("### docs/extra.md") < part.indexOf("### README.md"));
+        assertTrue(part.indexOf("### docs/skip.md") < part.indexOf("### README.md"));
         assertTrue(part.indexOf("### README.md") < part.indexOf("### src/Alpha.java"));
         assertTrue(part.indexOf("### src/Alpha.java") < part.indexOf("### src/main.ts"));
         assertTrue(part.indexOf("### src/main.ts") < part.indexOf("### TODO.md"));
@@ -265,6 +289,7 @@ class TextBundlerTest {
     private CliOptions bundleOptions() {
         CliOptions options = new CliOptions();
         options.inputDirectory = tempDir.toString();
+        options.outputDirectory = tempDir.resolve("out").toString();
         return options;
     }
 

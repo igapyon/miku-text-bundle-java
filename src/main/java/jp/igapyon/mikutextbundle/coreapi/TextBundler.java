@@ -8,36 +8,30 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jp.igapyon.mikutextbundle.discovery.DiscoveryResult;
+import jp.igapyon.mikutextbundle.discovery.FileDiscovery;
 import jp.igapyon.mikutextbundle.markdown.Markdown;
 import jp.igapyon.mikutextbundle.match.PatternMatcher;
 import jp.igapyon.mikutextbundle.model.BundleChunk;
 import jp.igapyon.mikutextbundle.model.BundlePart;
 import jp.igapyon.mikutextbundle.model.CliOptions;
 import jp.igapyon.mikutextbundle.model.CollectedFile;
+import jp.igapyon.mikutextbundle.model.IgnoreStats;
 import jp.igapyon.mikutextbundle.model.Marker;
 import jp.igapyon.mikutextbundle.model.SkippedFile;
 import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 import jp.igapyon.mikutextbundle.pathutils.PathUtils;
 
 public class TextBundler {
-    private static final String[] DEFAULT_SOURCE_DIRECTORIES = new String[] { "src", "lib", "app", "test", "tests" };
-    private static final String[] DEFAULT_SOURCE_EXTENSIONS = new String[] { "ts", "tsx", "js", "jsx", "mjs", "cjs", "java", "cs" };
-    private static final String[] DEFAULT_ROOT_FILES = new String[] { "README.md", "TODO.md" };
     private static final String INDEX_FILE_NAME = "text-bundle-000-index.md";
     private static final String PROMPT_FILE_NAME = "text-bundle-000-prompt.md";
     private static final Pattern MARKER_PATTERN = Pattern.compile("\\b(TODO|FIXME|XXX)\\b(?!\\.)(.*)");
@@ -52,11 +46,11 @@ public class TextBundler {
             throw new IllegalArgumentException("Input directory does not exist: " + inputPath);
         }
 
-        Path outputDirectory = chooseOutputDirectory(inputPath, options.outputDirectory, now);
+        Path outputDirectory = chooseOutputDirectory(options.outputDirectory);
         Files.createDirectories(outputDirectory);
 
         List<String> gitignorePatterns = readRootGitignore(inputPath);
-        CollectedFilesResult collected = collectFiles(inputPath, options, gitignorePatterns);
+        CollectedFilesResult collected = collectFiles(inputPath, outputDirectory, options, gitignorePatterns);
         List<Marker> markers = collectMarkers(collected.files);
         BundlePartsResult partsResult = buildParts(collected.files, options.maxChars);
 
@@ -67,6 +61,12 @@ public class TextBundler {
             out.println("collected=" + collected.files.size());
             out.println("skipped=" + collected.skipped.size());
             out.println("parts=" + partsResult.parts.size());
+            out.println("ignoredDirectories=" + collected.ignored.directories);
+            out.println("ignoredFiles=" + collected.ignored.files);
+            out.println("ignoredByDirectory=" + collected.ignored.byDirectory);
+            out.println("ignoredByExtension=" + collected.ignored.byExtension);
+            out.println("ignoredByGitignore=" + collected.ignored.byGitignore);
+            out.println("ignoredByOutputDirectory=" + collected.ignored.byOutputDirectory);
         }
 
         out.println("generated: " + paths.indexPath);
@@ -82,34 +82,19 @@ public class TextBundler {
         result.partPaths.addAll(paths.partPaths);
         result.filesCollected = collected.files.size();
         result.filesSkipped = collected.skipped.size();
+        result.directoriesIgnored = collected.ignored.directories;
+        result.filesIgnored = collected.ignored.files;
+        result.ignoredByDirectory = collected.ignored.byDirectory;
+        result.ignoredByExtension = collected.ignored.byExtension;
+        result.ignoredByGitignore = collected.ignored.byGitignore;
+        result.ignoredByOutputDirectory = collected.ignored.byOutputDirectory;
         result.partsGenerated = partsResult.parts.size();
         result.warnings.addAll(partsResult.warnings);
         return result;
     }
 
-    public static Path defaultOutputBase(Path inputDirectory, Date now) {
-        return inputDirectory.toAbsolutePath().normalize().resolve("workplace").resolve("miku-text-bundle")
-                .resolve(new SimpleDateFormat("yyyyMMddHHmm").format(now));
-    }
-
-    public static Path chooseOutputDirectory(Path inputDirectory, String explicitOutputDirectory, Date now) {
-        if (explicitOutputDirectory != null && explicitOutputDirectory.length() > 0) {
-            return Paths.get(explicitOutputDirectory).toAbsolutePath().normalize();
-        }
-
-        Path basePath = defaultOutputBase(inputDirectory, now);
-        if (!Files.exists(basePath)) {
-            return basePath;
-        }
-
-        for (int suffix = 1; suffix < 10000; suffix++) {
-            Path candidate = Paths.get(basePath.toString() + "-" + suffix);
-            if (!Files.exists(candidate)) {
-                return candidate;
-            }
-        }
-
-        throw new IllegalStateException("Could not choose a unique output directory under " + basePath.getParent() + ".");
+    public static Path chooseOutputDirectory(String outputDirectory) {
+        return Paths.get(outputDirectory).toAbsolutePath().normalize();
     }
 
     private List<String> readRootGitignore(Path inputPath) throws IOException {
@@ -120,13 +105,15 @@ public class TextBundler {
         return PatternMatcher.parseGitignore(new String(Files.readAllBytes(gitignorePath), StandardCharsets.UTF_8));
     }
 
-    private CollectedFilesResult collectFiles(Path inputPath, CliOptions options, List<String> gitignorePatterns)
+    private CollectedFilesResult collectFiles(Path inputPath, Path outputPath, CliOptions options,
+            List<String> gitignorePatterns)
             throws IOException {
         List<CollectedFile> files = new ArrayList<CollectedFile>();
         List<SkippedFile> skipped = new ArrayList<SkippedFile>();
         int maxInputFileBytes = options.maxInputFileBytes;
+        DiscoveryResult discovered = FileDiscovery.discoverCandidateFiles(inputPath, outputPath, options, gitignorePatterns);
 
-        for (Path filePath : discoverCandidateFiles(inputPath, options, gitignorePatterns)) {
+        for (Path filePath : discovered.files) {
             String relativePath = relativeInputPath(inputPath, filePath);
             long size = Files.size(filePath);
             if (size > maxInputFileBytes) {
@@ -145,118 +132,7 @@ public class TextBundler {
             files.add(createCollectedFile(filePath, relativePath, content));
         }
 
-        return new CollectedFilesResult(files, skipped);
-    }
-
-    private List<Path> discoverCandidateFiles(Path inputPath, CliOptions options, List<String> gitignorePatterns)
-            throws IOException {
-        Set<Path> candidates = new LinkedHashSet<Path>();
-        addRootFiles(candidates, inputPath);
-        addDefaultSourceFiles(candidates, inputPath);
-        addIncludedFiles(candidates, inputPath, options.includePatterns);
-
-        List<Path> result = new ArrayList<Path>();
-        for (Path filePath : candidates) {
-            if (shouldCollectCandidate(inputPath, filePath, options, gitignorePatterns)) {
-                result.add(filePath);
-            }
-        }
-        Collections.sort(result, new Comparator<Path>() {
-            public int compare(Path left, Path right) {
-                return comparePathLikeUpstream(relativeInputPath(inputPath, left), relativeInputPath(inputPath, right));
-            }
-        });
-        return result;
-    }
-
-    private void addRootFiles(Set<Path> candidates, Path inputPath) {
-        for (String rootFile : DEFAULT_ROOT_FILES) {
-            Path fullPath = inputPath.resolve(rootFile);
-            if (Files.isRegularFile(fullPath)) {
-                candidates.add(fullPath);
-            }
-        }
-    }
-
-    private void addDefaultSourceFiles(Set<Path> candidates, Path inputPath) throws IOException {
-        for (String sourceDir : DEFAULT_SOURCE_DIRECTORIES) {
-            Path fullPath = inputPath.resolve(sourceDir);
-            if (!Files.isDirectory(fullPath)) {
-                continue;
-            }
-            for (Path filePath : listFilesRecursively(inputPath, fullPath)) {
-                if (isDefaultSourceFile(filePath)) {
-                    candidates.add(filePath);
-                }
-            }
-        }
-    }
-
-    private void addIncludedFiles(Set<Path> candidates, Path inputPath, List<String> includePatterns) throws IOException {
-        if (includePatterns.isEmpty()) {
-            return;
-        }
-        for (Path filePath : listFilesRecursively(inputPath, inputPath)) {
-            if (PatternMatcher.matchesAnyPattern(relativeInputPath(inputPath, filePath), includePatterns)) {
-                candidates.add(filePath);
-            }
-        }
-    }
-
-    private List<Path> listFilesRecursively(Path rootPath, Path startPath) throws IOException {
-        List<Path> files = new ArrayList<Path>();
-        List<Path> entries = new ArrayList<Path>();
-        DirectoryStream<Path> stream = Files.newDirectoryStream(startPath);
-        try {
-            for (Path entry : stream) {
-                entries.add(entry);
-            }
-        } finally {
-            stream.close();
-        }
-        Collections.sort(entries, new Comparator<Path>() {
-            public int compare(Path left, Path right) {
-                return comparePathLikeUpstream(left.getFileName().toString(), right.getFileName().toString());
-            }
-        });
-
-        for (Path entry : entries) {
-            String relativePath = relativeInputPath(rootPath, entry);
-            if (isRootDotDirectory(relativePath)) {
-                continue;
-            }
-            if (Files.isDirectory(entry)) {
-                files.addAll(listFilesRecursively(rootPath, entry));
-            } else if (Files.isRegularFile(entry)) {
-                files.add(entry);
-            }
-        }
-        return files;
-    }
-
-    private boolean shouldCollectCandidate(Path inputPath, Path filePath, CliOptions options, List<String> gitignorePatterns) {
-        String relativePath = relativeInputPath(inputPath, filePath);
-        return !isHardExcluded(relativePath, gitignorePatterns)
-                && !PatternMatcher.matchesAnyPattern(relativePath, options.excludePatterns);
-    }
-
-    private boolean isHardExcluded(String relativePath, List<String> gitignorePatterns) {
-        return isRootDotDirectory(relativePath) || PatternMatcher.matchesGitignore(relativePath, gitignorePatterns);
-    }
-
-    private boolean isRootDotDirectory(String relativePath) {
-        String[] segments = PathUtils.toPosixPath(relativePath).split("/");
-        return segments.length > 0 && segments[0].startsWith(".") && segments[0].length() > 1;
-    }
-
-    private boolean isDefaultSourceFile(Path filePath) {
-        String extension = PathUtils.getExtension(filePath.toString());
-        for (String defaultExtension : DEFAULT_SOURCE_EXTENSIONS) {
-            if (defaultExtension.equals(extension)) {
-                return true;
-            }
-        }
-        return false;
+        return new CollectedFilesResult(files, skipped, discovered.ignored);
     }
 
     private SupportedEncoding selectEncoding(String relativePath, CliOptions options) {
@@ -498,21 +374,15 @@ public class TextBundler {
         return PathUtils.toPosixPath(inputPath.relativize(filePath).toString());
     }
 
-    private int comparePathLikeUpstream(String left, String right) {
-        int caseInsensitive = left.compareToIgnoreCase(right);
-        if (caseInsensitive != 0) {
-            return caseInsensitive;
-        }
-        return left.compareTo(right);
-    }
-
     private static final class CollectedFilesResult {
         private final List<CollectedFile> files;
         private final List<SkippedFile> skipped;
+        private final IgnoreStats ignored;
 
-        private CollectedFilesResult(List<CollectedFile> files, List<SkippedFile> skipped) {
+        private CollectedFilesResult(List<CollectedFile> files, List<SkippedFile> skipped, IgnoreStats ignored) {
             this.files = files;
             this.skipped = skipped;
+            this.ignored = ignored;
         }
     }
 

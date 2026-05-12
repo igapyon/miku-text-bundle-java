@@ -20,7 +20,10 @@ focused regression:
   mvn test -Dtest=MikuTextBundleCliTest
 
 notes:
+  - CLI coverage maps upstream v0.8.0 required `--input` / `--output` parsing.
   - CLI encoding option coverage maps upstream `--encoding` and `--encoding-extension` parser tests.
+  - Exclude extension and directory list operation tests map upstream `--add-exclude-*` and `--remove-exclude-*`.
+  - Removed positional, `--input-directory`, `--output-directory`, `--include`, `--exclude`, `-h`, and `-v` behavior is covered as rejection cases.
   - Java uses `SupportedEncoding` enum values instead of TypeScript string union literals.
 ```
 
@@ -104,9 +107,11 @@ focused regression:
 
 notes:
   - Extension-specific and default Shift_JIS decoding cases map the upstream explicit input encoding behavior.
+  - v0.8.0 broad recursive discovery, default binary extension exclusion, directory exclusion, output-directory exclusion, and ignored counters are covered.
   - Java uses JDK Charset decoding instead of upstream iconv-lite.
-  - UpstreamParityTest compares generated Markdown with local `workplace/miku-text-bundle-devel/dist/main.js`.
-  - The parity test is skipped when Node or the local upstream checkout is unavailable.
+  - UpstreamParityTest compares generated Markdown with a local upstream `dist/main.js` only when the checkout is version `0.8.0`.
+  - A local upstream root can be supplied with `-DmikuTextBundle.upstreamRoot=/path/to/miku-text-bundle`.
+  - The parity test is skipped when Node or a local upstream 0.8.0 build is unavailable.
 ```
 
 ```text

@@ -1,6 +1,7 @@
 package jp.igapyon.mikutextbundle.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -19,51 +20,51 @@ class MikuTextBundleCliTest {
         CliResult result = run("--help");
 
         assertEquals(0, result.exitCode);
-        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
-        assertTrue(result.out.contains("--max-chars"));
+        assertTrue(result.out.contains("miku-text-bundle --input <dir> --output <dir>"));
+        assertTrue(result.out.contains("--add-exclude-extension"));
         assertEquals("", result.err);
     }
 
     @Test
-    void versionReturnsProductVersion() {
+    void versionReturnsPackageVersionOnly() {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("miku-text-bundle-java 0.5.3\n", result.out);
+        assertEquals("0.8.0\n", result.out);
         assertEquals("", result.err);
     }
 
     @Test
-    void parseArgsParsesPositionalArgumentsAndOptions() throws Exception {
-        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { ".", "out", "--max-chars", "1000",
-                "--max-input-file-bytes", "2000", "--include", "docs/**/*.md,package.json", "--exclude", "test/**",
-                "--verbose" });
+    void parseArgsParsesRequiredDirectoriesAndOptions() throws Exception {
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out",
+                "--max-chars", "1000", "--max-input-file-bytes", "2000", "--verbose" });
 
         assertEquals(".", options.inputDirectory);
         assertEquals("out", options.outputDirectory);
         assertEquals(1000, options.maxChars);
         assertEquals(2000, options.maxInputFileBytes);
         assertEquals(SupportedEncoding.UTF_8, options.encoding.defaultEncoding);
-        assertEquals(Arrays.asList("docs/**/*.md", "package.json"), options.includePatterns);
-        assertEquals(Arrays.asList("test/**"), options.excludePatterns);
         assertTrue(options.verbose);
     }
 
     @Test
-    void parseArgsParsesNamedDirectoryOptions() throws Exception {
-        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input-directory", ".", "--output-directory", "out" });
+    void parseArgsParsesExcludeListOperations() throws Exception {
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out",
+                "--add-exclude-extension", ".wasm,.BIN", "--remove-exclude-extension", ".pdf",
+                "--add-exclude-directory", "generated,./logs/", "--remove-exclude-directory", "dist" });
 
-        assertEquals(".", options.inputDirectory);
-        assertEquals("out", options.outputDirectory);
-        assertEquals(120000, options.maxChars);
-        assertEquals(1000000, options.maxInputFileBytes);
-        assertEquals(SupportedEncoding.UTF_8, options.encoding.defaultEncoding);
+        assertTrue(options.excludeExtensions.contains(".wasm"));
+        assertTrue(options.excludeExtensions.contains(".bin"));
+        assertFalse(options.excludeExtensions.contains(".pdf"));
+        assertTrue(options.excludeDirectories.contains("generated"));
+        assertTrue(options.excludeDirectories.contains("logs"));
+        assertFalse(options.excludeDirectories.contains("dist"));
     }
 
     @Test
     void parseArgsParsesDefaultAndExtensionEncodingOptions() throws Exception {
-        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { ".", "--encoding", "shift_jis",
-                "--encoding-extension", ".ts=utf-8,.java=shift_jis" });
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out",
+                "--encoding", "shift_jis", "--encoding-extension", ".ts=utf-8,.java=shift_jis" });
 
         assertEquals(SupportedEncoding.SHIFT_JIS, options.encoding.defaultEncoding);
         assertEquals(SupportedEncoding.UTF_8, options.encoding.extensions.get(".ts"));
@@ -72,9 +73,9 @@ class MikuTextBundleCliTest {
 
     @Test
     void invalidEncodingOptionsReturnUsageError() {
-        CliResult unsupported = run(".", "--encoding", "latin1");
-        CliResult missingDot = run(".", "--encoding-extension", "java=shift_jis");
-        CliResult unsupportedExtension = run(".", "--encoding-extension", ".java=latin1");
+        CliResult unsupported = run("--input", ".", "--output", "out", "--encoding", "latin1");
+        CliResult missingDot = run("--input", ".", "--output", "out", "--encoding-extension", "java=shift_jis");
+        CliResult unsupportedExtension = run("--input", ".", "--output", "out", "--encoding-extension", ".java=latin1");
 
         assertEquals(1, unsupported.exitCode);
         assertTrue(unsupported.err.contains("--encoding must be one of"));
@@ -85,48 +86,68 @@ class MikuTextBundleCliTest {
     }
 
     @Test
-    void missingInputDirectoryReturnsUsageError() {
-        CliResult result = run();
+    void rejectsRemovedAndPositionalArguments() {
+        CliResult positional = run(".", "out");
+        CliResult oldInput = run("--input-directory", ".", "--output", "out");
+        CliResult oldInclude = run("--input", ".", "--output", "out", "--include", "docs/**/*.md");
+        CliResult shortHelp = run("-h");
 
-        assertEquals(1, result.exitCode);
-        assertTrue(result.err.contains("Please specify an input directory."));
-        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+        assertEquals(1, positional.exitCode);
+        assertTrue(positional.err.contains("Positional arguments are not supported"));
+        assertEquals(1, oldInput.exitCode);
+        assertTrue(oldInput.err.contains("Unknown argument: --input-directory"));
+        assertEquals(1, oldInclude.exitCode);
+        assertTrue(oldInclude.err.contains("Unknown argument: --include"));
+        assertEquals(1, shortHelp.exitCode);
+        assertTrue(shortHelp.err.contains("Unknown argument: -h"));
     }
 
     @Test
-    void unknownOptionReturnsUsageError() {
-        CliResult result = run(".", "--unknown");
+    void missingRequiredDirectoriesReturnUsageError() {
+        CliResult missingInput = run("--output", "out");
+        CliResult missingOutput = run("--input", ".");
 
-        assertEquals(1, result.exitCode);
-        assertTrue(result.err.contains("Unknown argument: --unknown"));
-        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+        assertEquals(1, missingInput.exitCode);
+        assertTrue(missingInput.err.contains("Please specify --input."));
+        assertEquals(1, missingOutput.exitCode);
+        assertTrue(missingOutput.err.contains("Please specify --output."));
     }
 
     @Test
     void missingOptionValueReturnsUsageError() {
-        CliResult result = run("--input-directory");
+        CliResult result = run("--input");
 
         assertEquals(1, result.exitCode);
-        assertTrue(result.err.contains("Please specify a value for --input-directory."));
-        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+        assertTrue(result.err.contains("Please specify a value for --input."));
+        assertTrue(result.out.contains("miku-text-bundle --input <dir> --output <dir>"));
     }
 
     @Test
     void invalidPositiveIntegerReturnsUsageError() {
-        CliResult result = run(".", "--max-input-file-bytes", "not-a-number");
+        CliResult result = run("--input", ".", "--output", "out", "--max-input-file-bytes", "not-a-number");
 
         assertEquals(1, result.exitCode);
         assertTrue(result.err.contains("--max-input-file-bytes must be a positive integer."));
-        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+        assertTrue(result.out.contains("miku-text-bundle --input <dir> --output <dir>"));
     }
 
     @Test
-    void unexpectedPositionalArgumentReturnsUsageError() {
-        CliResult result = run(".", "out", "extra");
+    void rejectsInvalidExcludeListValues() {
+        CliResult extension = run("--input", ".", "--output", "out", "--add-exclude-extension", "png");
+        CliResult directory = run("--input", ".", "--output", "out", "--add-exclude-directory", ".");
 
-        assertEquals(1, result.exitCode);
-        assertTrue(result.err.contains("Unexpected positional argument: extra"));
-        assertTrue(result.out.contains("miku-text-bundle <inputDir>"));
+        assertEquals(1, extension.exitCode);
+        assertTrue(extension.err.contains("extensions with a leading dot"));
+        assertEquals(1, directory.exitCode);
+        assertTrue(directory.err.contains("relative directory names or paths"));
+    }
+
+    @Test
+    void parseArgsKeepsDefaultExcludeLists() throws Exception {
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out" });
+
+        assertTrue(options.excludeExtensions.containsAll(Arrays.asList(".png", ".pdf", ".zip")));
+        assertTrue(options.excludeDirectories.containsAll(Arrays.asList(".git", "node_modules", "target")));
     }
 
     private CliResult run(String... args) {
