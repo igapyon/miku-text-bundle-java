@@ -8,7 +8,7 @@ Upstream repository:
 
 Local upstream checkout:
 
-- `workplace/miku-text-bundle-devel/`
+- `workplace/miku-text-bundle-upstream/` or `workplace/miku-text-bundle-devel/`
 
 ```text
 upstream file:
@@ -19,6 +19,7 @@ java classes:
   jp.igapyon.mikutextbundle.model.CollectedFile
   jp.igapyon.mikutextbundle.model.Marker
   jp.igapyon.mikutextbundle.model.SkippedFile
+  jp.igapyon.mikutextbundle.model.IgnoreStats
   jp.igapyon.mikutextbundle.model.BundleChunk
   jp.igapyon.mikutextbundle.model.BundlePart
   jp.igapyon.mikutextbundle.coreapi.BundleResult
@@ -28,6 +29,8 @@ java classes:
 notes:
   - POJO classes use public fields during the initial straight conversion.
   - SupportedEncoding and EncodingOptions map the upstream explicit input encoding contract.
+  - CliOptions maps the v0.8.0 required `--input` / `--output` contract and exclude-list controls.
+  - IgnoreStats and BundleResult map the v0.8.0 ignored-directory / ignored-file counters.
 ```
 
 ```text
@@ -51,6 +54,19 @@ java classes:
 
 notes:
   - Core API owns file discovery, skip handling, splitting, Markdown file generation, and result summaries.
+```
+
+```text
+upstream file:
+  workplace/miku-text-bundle-devel/src/discovery.ts
+
+java classes:
+  jp.igapyon.mikutextbundle.discovery.FileDiscovery
+  jp.igapyon.mikutextbundle.discovery.DiscoveryResult
+
+notes:
+  - Java discovery follows the v0.8.0 broad recursive collection contract.
+  - Default exclude extensions and directories live in FileDiscovery so the core layer does not depend on the CLI adapter.
 ```
 
 ```text

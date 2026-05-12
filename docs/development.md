@@ -8,10 +8,11 @@ This repository follows the miku-soft Java application direction.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
 - Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
+- Current upstream compatibility target: `miku-text-bundle` `v0.8.0`.
 - Primary verification command: `mvn test`.
 - Packaged-jar verification command: `mvn verify`.
 - Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
-- Local upstream checkout: `workplace/miku-text-bundle-devel/`.
+- Local upstream checkout: `workplace/miku-text-bundle-upstream/` or `workplace/miku-text-bundle-devel/`.
 
 ## Boundaries
 
@@ -26,6 +27,14 @@ This repository follows the miku-soft Java application direction.
 - The default encoding is `utf-8`.
 - Extension rules such as `.java=shift_jis` override the default encoding for exact final extensions.
 - The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in the index Markdown.
+
+## v0.8.0 Collection Policy
+
+- CLI input and output directories are explicit and required: `--input <dir>` and `--output <dir>`.
+- Positional input/output arguments, `--input-directory`, `--output-directory`, `--include`, and `--exclude` are removed upstream contracts and should remain rejected.
+- File discovery broadly scans regular files under the input directory.
+- Known binary extensions, default excluded directories, root `.gitignore`, and the output directory are filtered before reading candidates.
+- Ignored directory/file counts are part of the core result and verbose diagnostics.
 
 ## Packaging
 
@@ -49,6 +58,7 @@ mvn test -Dtest=MikuTextBundleCliIntegrationTest
 mvn verify -Dit.test=MikuTextBundleCliJarIT
 mvn test -Dtest=TextBundlerTest
 mvn test -Dtest=UpstreamParityTest
+mvn test -Dtest=UpstreamParityTest -DmikuTextBundle.upstreamRoot=/path/to/miku-text-bundle
 mvn test -Dtest=PatternMatcherTest
 mvn test -Dtest=MarkdownTest
 mvn test -Dtest=PathUtilsTest

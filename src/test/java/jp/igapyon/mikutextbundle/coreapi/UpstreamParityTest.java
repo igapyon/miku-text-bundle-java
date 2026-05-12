@@ -29,9 +29,8 @@ class UpstreamParityTest {
 
     @Test
     void productFixtureMatchesUpstreamMarkdownOutputs() throws Exception {
-        Path upstreamMain = java.nio.file.Paths.get("workplace/miku-text-bundle-devel/dist/main.js").toAbsolutePath()
-                .normalize();
-        assumeTrue(Files.isRegularFile(upstreamMain), "local upstream dist/main.js is unavailable");
+        Path upstreamMain = findUpstreamMain();
+        assumeTrue(upstreamMain != null, "local upstream 0.8.0 dist/main.js is unavailable");
         assumeTrue(isNodeAvailable(), "node executable is unavailable");
 
         Path javaInput = tempDir.resolve("java-input");
@@ -44,8 +43,6 @@ class UpstreamParityTest {
         CliOptions options = new CliOptions();
         options.inputDirectory = javaInput.toString();
         options.outputDirectory = javaOutput.toString();
-        options.includePatterns.add("docs/**/*.md");
-        options.excludePatterns.add("docs/skip.md");
         options.maxChars = 120000;
         options.maxInputFileBytes = 1000000;
 
@@ -57,6 +54,31 @@ class UpstreamParityTest {
                 normalizeIndex(read(javaOutput.resolve(INDEX_FILE_NAME)), javaInput, javaOutput));
         assertEquals(read(upstreamOutput.resolve(FIRST_PART_FILE_NAME)), read(javaOutput.resolve(FIRST_PART_FILE_NAME)));
         assertEquals(read(upstreamOutput.resolve(PROMPT_FILE_NAME)), read(javaOutput.resolve(PROMPT_FILE_NAME)));
+    }
+
+    private Path findUpstreamMain() throws IOException {
+        java.util.List<Path> candidates = new java.util.ArrayList<Path>();
+        String configuredRoot = System.getProperty("mikuTextBundle.upstreamRoot");
+        if (configuredRoot != null && configuredRoot.length() > 0) {
+            candidates.add(java.nio.file.Paths.get(configuredRoot));
+        }
+        candidates.add(java.nio.file.Paths.get("workplace/miku-text-bundle-upstream"));
+        candidates.add(java.nio.file.Paths.get("workplace/miku-text-bundle-devel"));
+        for (Path candidate : candidates) {
+            Path main = candidate.resolve("dist/main.js").toAbsolutePath().normalize();
+            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "0.8.0")) {
+                return main;
+            }
+        }
+        return null;
+    }
+
+    private boolean isUpstreamVersion(Path upstreamRoot, String expectedVersion) throws IOException {
+        Path packageJson = upstreamRoot.resolve("package.json");
+        if (!Files.isRegularFile(packageJson)) {
+            return false;
+        }
+        return read(packageJson).contains("\"version\": \"" + expectedVersion + "\"");
     }
 
     private boolean isNodeAvailable() throws InterruptedException {
@@ -78,8 +100,6 @@ class UpstreamParityTest {
                 + "outputDirectory:" + quote(outputDirectory.toString()) + ","
                 + "maxChars:120000,"
                 + "maxInputFileBytes:1000000,"
-                + "includePatterns:['docs/**/*.md'],"
-                + "excludePatterns:['docs/skip.md'],"
                 + "verbose:false"
                 + "}, new Date(" + FIXED_NOW_MILLIS + "));";
 

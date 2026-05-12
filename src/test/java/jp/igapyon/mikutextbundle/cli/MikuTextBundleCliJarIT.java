@@ -25,10 +25,10 @@ class MikuTextBundleCliJarIT {
         write(input.resolve("README.md"), "# README\n");
         write(input.resolve("src/main.ts"), "const value = 1;\n");
 
-        ProcessResult result = runJar(input.toString(), output.toString(), "--max-chars", "120000");
+        ProcessResult result = runJar("--input", input.toString(), "--output", output.toString(), "--max-chars", "120000");
 
         assertEquals(0, result.exitCode);
-        assertTrue(result.stdout.contains("completed: 1 part(s), 2 file(s) collected"));
+        assertTrue(result.stdout.contains("completed: 1 part(s), 2 file(s) collected, 0 file(s) skipped"));
         assertTrue(read(output.resolve(INDEX_FILE_NAME)).contains("`src/main.ts`"));
         assertTrue(read(output.resolve(FIRST_PART_FILE_NAME)).contains("### src/main.ts"));
         assertEquals("", result.stderr);
@@ -36,7 +36,8 @@ class MikuTextBundleCliJarIT {
 
     @Test
     void packagedJarReturnsNonZeroForInvalidInputDirectory() throws Exception {
-        ProcessResult result = runJar(tempDir.resolve("missing").toString());
+        ProcessResult result = runJar("--input", tempDir.resolve("missing").toString(), "--output",
+                tempDir.resolve("out").toString());
 
         assertEquals(1, result.exitCode);
         assertTrue(result.stderr.contains("Input directory does not exist"));
@@ -63,7 +64,7 @@ class MikuTextBundleCliJarIT {
 
     private Path jarPath() {
         String buildDirectory = System.getProperty("project.build.directory", "target");
-        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-0.5.3");
+        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-0.8.0");
         return new File(buildDirectory, finalName + ".jar").toPath();
     }
 

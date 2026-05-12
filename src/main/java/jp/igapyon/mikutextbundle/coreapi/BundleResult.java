@@ -10,6 +10,12 @@ public class BundleResult {
     public List<String> partPaths = new ArrayList<String>();
     public int filesCollected;
     public int filesSkipped;
+    public int directoriesIgnored;
+    public int filesIgnored;
+    public int ignoredByDirectory;
+    public int ignoredByExtension;
+    public int ignoredByGitignore;
+    public int ignoredByOutputDirectory;
     public int partsGenerated;
     public List<String> warnings = new ArrayList<String>();
 }

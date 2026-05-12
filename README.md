@@ -23,37 +23,21 @@ mvn package
 The executable jar is created under `target/`.
 
 ```text
-target/miku-text-bundle-java-0.5.3.jar
+target/miku-text-bundle-java-0.8.0.jar
 ```
 
 ## Quick Start
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar .
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle
 ```
 
-When the output directory is omitted, files are written under:
-
-```text
-workplace/miku-text-bundle/<yyyyMMddHHmm>/
-```
-
-To choose the output directory explicitly:
-
-```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle
-```
+Both `--input` and `--output` are required.
 
 ## CLI Usage
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar <inputDir> [outputDir] [options]
-```
-
-Named directory options are also supported:
-
-```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar --input-directory <dir> --output-directory <dir>
+java -jar target/miku-text-bundle-java-0.8.0.jar --input <dir> --output <dir> [options]
 ```
 
 Options:
@@ -64,10 +48,12 @@ Options:
 | `--max-input-file-bytes <number>` | Skip input files larger than this byte size. | `1000000` |
 | `--encoding utf-8\|shift_jis` | Set the default input file encoding. | `utf-8` |
 | `--encoding-extension ".java=shift_jis"` | Set per-extension input encodings. Multiple rules can be comma-separated. | none |
-| `--include <glob>` | Add comma-separated include patterns, such as `docs/**/*.md,package.json`. | none |
-| `--exclude <glob>` | Add comma-separated exclude patterns. | none |
+| `--add-exclude-extension ".ext"` | Add comma-separated file extensions to the exclude list. | default list |
+| `--remove-exclude-extension ".ext"` | Remove comma-separated file extensions from the exclude list. | |
+| `--add-exclude-directory "dir"` | Add comma-separated directory names or relative paths to the exclude list. | default list |
+| `--remove-exclude-directory "dir"` | Remove comma-separated directory names or relative paths from the exclude list. | |
 | `--verbose` | Print collection diagnostics. | off |
-| `--help`, `-h` | Print help. | |
+| `--help` | Print help. | |
 | `--version` | Print version. | |
 
 ## Output Files
@@ -86,22 +72,19 @@ The CLI prints generated file paths and a completion summary:
 generated: /path/to/out/text-bundle-000-index.md
 generated: /path/to/out/text-bundle-001.md
 generated: /path/to/out/text-bundle-000-prompt.md
-completed: 1 part(s), 2 file(s) collected
+completed: 1 part(s), 2 file(s) collected, 0 file(s) skipped, 1 directories ignored, 0 file(s) ignored
 ```
 
 ## File Selection
 
-By default, the tool collects:
-
-- Root files: `README.md`, `TODO.md`
-- Source directories: `src/`, `lib/`, `app/`, `test/`, `tests/`
-- Source extensions: `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `java`, `cs`
+By default, the tool broadly collects regular files under the input directory.
 
 The tool skips:
 
-- Root dot directories such as `.git/`, `.idea/`, and `.secret/`
-- Files ignored by the root `.gitignore`
-- Files matching `--exclude`
+- Known binary file extensions such as `.png`, `.pdf`, `.zip`, `.xlsx`, and `.jar`
+- Default excluded directories such as `.git/`, `.codex/`, `node_modules/`, `dist/`, `build/`, `target/`, and `workplace/`
+- Files ignored by the input directory's root `.gitignore`
+- Files under the output directory when the output directory is inside the input directory
 - Files larger than `--max-input-file-bytes`
 - Binary files or files that cannot be decoded with the selected input encoding
 
@@ -112,47 +95,49 @@ The default input encoding is UTF-8. Use `--encoding shift_jis` to read collecte
 Per-extension rules override the default encoding:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
 ```
 
 Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in `text-bundle-000-index.md`.
 
-Use `--include` to add extra text files:
+Use `--add-exclude-extension` and `--remove-exclude-extension` to adjust extension-based filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --include "docs/**/*.md,pom.xml"
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle --add-exclude-extension ".wasm,.bin"
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle --remove-exclude-extension ".pdf"
 ```
 
-Use `--exclude` to remove matching files from the collected set:
+Use `--add-exclude-directory` and `--remove-exclude-directory` to adjust directory filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --exclude "src/generated/**"
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle --add-exclude-directory "generated"
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle --remove-exclude-directory "dist"
 ```
 
 ## Examples
 
-Bundle the current repository with the default output path:
+Bundle the current repository:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar .
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle
 ```
 
 Bundle a repository and write to a known directory:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar /path/to/repo /path/to/out
+java -jar target/miku-text-bundle-java-0.8.0.jar --input /path/to/repo --output /path/to/out
 ```
 
-Include Markdown docs and show diagnostics:
+Show diagnostics:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --include "docs/**/*.md" --verbose
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle --verbose
 ```
 
 Use smaller bundle parts:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.5.3.jar . out/text-bundle --max-chars 60000
+java -jar target/miku-text-bundle-java-0.8.0.jar --input . --output out/text-bundle --max-chars 60000
 ```
 
 ## Development
@@ -173,7 +158,7 @@ mvn verify
 
 - `docs/` contains miku-soft design documents and project maintenance notes.
 - `workplace/` is for local upstream checkouts, temporary verification data, generated files, and other scratch work.
-- The local upstream checkout used for straight conversion can be placed under `workplace/miku-text-bundle-devel/`.
+- The local upstream checkout used for straight conversion can be placed under `workplace/miku-text-bundle-upstream/` or `workplace/miku-text-bundle-devel/`.
 - Only `workplace/.gitkeep` is tracked under `workplace/`.
 - macOS metadata, Maven build output, local VS Code MCP settings, and normal `workplace/` contents are ignored by Git.
 - `.mvn/jvm.config` is tracked to keep local Maven JVM network settings consistent.

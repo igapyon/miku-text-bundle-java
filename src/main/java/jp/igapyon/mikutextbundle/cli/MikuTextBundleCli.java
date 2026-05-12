@@ -2,14 +2,20 @@ package jp.igapyon.mikutextbundle.cli;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import jp.igapyon.mikutextbundle.coreapi.BundleResult;
 import jp.igapyon.mikutextbundle.coreapi.TextBundler;
 import jp.igapyon.mikutextbundle.core.MikuTextBundle;
+import jp.igapyon.mikutextbundle.discovery.FileDiscovery;
 import jp.igapyon.mikutextbundle.model.EncodingOptions;
 import jp.igapyon.mikutextbundle.model.CliOptions;
 import jp.igapyon.mikutextbundle.model.SupportedEncoding;
+import jp.igapyon.mikutextbundle.pathutils.PathUtils;
 
 /**
  * Command line entrypoint for miku-text-bundle-java.
@@ -29,13 +35,15 @@ public final class MikuTextBundleCli {
             ByteArrayOutputStreamBridge generatedOutput = new ByteArrayOutputStreamBridge();
             BundleResult result = new TextBundler().createTextBundle(options, new java.util.Date(), generatedOutput.printStream);
             out.print(generatedOutput.text());
-            out.println("completed: " + result.partsGenerated + " part(s), " + result.filesCollected + " file(s) collected");
+            out.println("completed: " + result.partsGenerated + " part(s), " + result.filesCollected
+                    + " file(s) collected, " + result.filesSkipped + " file(s) skipped, "
+                    + result.directoriesIgnored + " directories ignored, " + result.filesIgnored + " file(s) ignored");
             return 0;
         } catch (HelpRequestedException ex) {
             printHelp(out);
             return 0;
         } catch (VersionRequestedException ex) {
-            out.println(MikuTextBundle.productName() + " " + MikuTextBundle.VERSION);
+            out.println(MikuTextBundle.VERSION);
             return 0;
         } catch (Exception ex) {
             err.println("error: " + ex.getMessage());
@@ -51,10 +59,7 @@ public final class MikuTextBundleCli {
             i = consumeOption(argv, i, state);
         }
 
-        applyPositionalDirectories(state);
-        if (state.inputDirectory == null) {
-            throw new IllegalArgumentException("Please specify an input directory.");
-        }
+        validateRequiredDirectories(state);
 
         CliOptions options = new CliOptions();
         options.inputDirectory = state.inputDirectory;
@@ -62,21 +67,32 @@ public final class MikuTextBundleCli {
         options.maxChars = state.maxChars;
         options.maxInputFileBytes = state.maxInputFileBytes;
         options.encoding = state.encoding;
-        options.includePatterns = state.includePatterns;
-        options.excludePatterns = state.excludePatterns;
+        options.excludeExtensions = sortedList(state.excludeExtensions);
+        options.excludeDirectories = sortedList(state.excludeDirectories);
         options.verbose = state.verbose;
         return options;
     }
 
     public static void printHelp(PrintStream out) {
         out.println("Usage:");
-        out.println("  miku-text-bundle <inputDir> [outputDir] [--max-chars 120000] [--max-input-file-bytes 1000000] [--encoding utf-8|shift_jis] [--encoding-extension \".java=shift_jis\"] [--include \"glob\"] [--exclude \"glob\"] [--verbose]");
-        out.println("  miku-text-bundle --input-directory <dir> [--output-directory <dir>] [--max-chars 120000] [--max-input-file-bytes 1000000] [--encoding utf-8|shift_jis]");
+        out.println("  miku-text-bundle --input <dir> --output <dir> [options]");
+        out.println("  miku-text-bundle --help");
+        out.println("  miku-text-bundle --version");
+        out.println();
+        out.println("Options:");
+        out.println("  --max-chars <number>");
+        out.println("  --max-input-file-bytes <number>");
+        out.println("  --encoding utf-8|shift_jis");
+        out.println("  --encoding-extension \".java=shift_jis\"");
+        out.println("  --add-exclude-extension \".ext\"");
+        out.println("  --remove-exclude-extension \".ext\"");
+        out.println("  --add-exclude-directory \"dir\"");
+        out.println("  --remove-exclude-directory \"dir\"");
+        out.println("  --verbose");
         out.println();
         out.println("Description:");
-        out.println("  Collect repository text files and generate split Markdown bundles for");
-        out.println("  generative AI handoff. When outputDir is omitted, outputs are written under");
-        out.println("  workplace/miku-text-bundle/<yyyyMMddHHmm>/.");
+        out.println("  Collect text-like files under the input directory and generate split");
+        out.println("  Markdown bundles for generative AI handoff.");
     }
 
     private static ParseState createParseState() {
@@ -84,9 +100,8 @@ public final class MikuTextBundleCli {
         state.maxChars = 120000;
         state.maxInputFileBytes = 1000000;
         state.encoding = new EncodingOptions();
-        state.includePatterns = new ArrayList<String>();
-        state.excludePatterns = new ArrayList<String>();
-        state.positional = new ArrayList<String>();
+        state.excludeExtensions = new LinkedHashSet<String>(FileDiscovery.DEFAULT_EXCLUDE_EXTENSIONS);
+        state.excludeDirectories = new LinkedHashSet<String>(FileDiscovery.DEFAULT_EXCLUDE_DIRECTORIES);
         return state;
     }
 
@@ -94,7 +109,7 @@ public final class MikuTextBundleCli {
             throws HelpRequestedException, VersionRequestedException {
         String arg = argv[index];
 
-        if ("--help".equals(arg) || "-h".equals(arg)) {
+        if ("--help".equals(arg)) {
             throw new HelpRequestedException();
         }
 
@@ -102,13 +117,13 @@ public final class MikuTextBundleCli {
             throw new VersionRequestedException();
         }
 
-        if ("--input-directory".equals(arg)) {
-            state.inputDirectory = readRequiredOptionValue(argv, index, "--input-directory");
+        if ("--input".equals(arg)) {
+            state.inputDirectory = readRequiredOptionValue(argv, index, "--input");
             return index + 1;
         }
 
-        if ("--output-directory".equals(arg)) {
-            state.outputDirectory = readRequiredOptionValue(argv, index, "--output-directory");
+        if ("--output".equals(arg)) {
+            state.outputDirectory = readRequiredOptionValue(argv, index, "--output");
             return index + 1;
         }
 
@@ -135,13 +150,35 @@ public final class MikuTextBundleCli {
             return index + 1;
         }
 
-        if ("--include".equals(arg)) {
-            state.includePatterns = parsePatternList(readRequiredOptionValue(argv, index, "--include"));
+        if ("--add-exclude-extension".equals(arg)) {
+            for (String extension : parseExtensionList(readRequiredOptionValue(argv, index, "--add-exclude-extension"),
+                    "--add-exclude-extension")) {
+                state.excludeExtensions.add(extension);
+            }
             return index + 1;
         }
 
-        if ("--exclude".equals(arg)) {
-            state.excludePatterns = parsePatternList(readRequiredOptionValue(argv, index, "--exclude"));
+        if ("--remove-exclude-extension".equals(arg)) {
+            for (String extension : parseExtensionList(readRequiredOptionValue(argv, index,
+                    "--remove-exclude-extension"), "--remove-exclude-extension")) {
+                state.excludeExtensions.remove(extension);
+            }
+            return index + 1;
+        }
+
+        if ("--add-exclude-directory".equals(arg)) {
+            for (String directory : parseDirectoryList(readRequiredOptionValue(argv, index, "--add-exclude-directory"),
+                    "--add-exclude-directory")) {
+                state.excludeDirectories.add(directory);
+            }
+            return index + 1;
+        }
+
+        if ("--remove-exclude-directory".equals(arg)) {
+            for (String directory : parseDirectoryList(readRequiredOptionValue(argv, index,
+                    "--remove-exclude-directory"), "--remove-exclude-directory")) {
+                state.excludeDirectories.remove(directory);
+            }
             return index + 1;
         }
 
@@ -150,12 +187,11 @@ public final class MikuTextBundleCli {
             return index;
         }
 
-        if (arg.startsWith("--")) {
+        if (arg.startsWith("-")) {
             throw new IllegalArgumentException("Unknown argument: " + arg);
         }
 
-        state.positional.add(arg);
-        return index;
+        throw new IllegalArgumentException("Positional arguments are not supported. Use --input and --output: " + arg);
     }
 
     private static String readRequiredOptionValue(String[] argv, int index, String optionName) {
@@ -175,6 +211,31 @@ public final class MikuTextBundleCli {
             }
         }
         return patterns;
+    }
+
+    private static List<String> parseExtensionList(String value, String optionName) {
+        List<String> extensions = new ArrayList<String>();
+        for (String item : parsePatternList(value)) {
+            String extension = item.toLowerCase();
+            if (extension.length() <= 1 || !extension.startsWith(".") || extension.indexOf('/') >= 0
+                    || extension.indexOf('\\') >= 0) {
+                throw new IllegalArgumentException(optionName + " values must be extensions with a leading dot.");
+            }
+            extensions.add(extension);
+        }
+        return extensions;
+    }
+
+    private static List<String> parseDirectoryList(String value, String optionName) {
+        List<String> directories = new ArrayList<String>();
+        for (String item : parsePatternList(value)) {
+            String directory = PathUtils.normalizePattern(item).replaceAll("/+$", "");
+            if (directory.length() == 0 || ".".equals(directory)) {
+                throw new IllegalArgumentException(optionName + " values must be relative directory names or paths.");
+            }
+            directories.add(directory);
+        }
+        return directories;
     }
 
     private static java.util.Map<String, SupportedEncoding> parseEncodingExtensions(String value) {
@@ -207,18 +268,23 @@ public final class MikuTextBundleCli {
         }
     }
 
-    private static void applyPositionalDirectories(ParseState state) {
-        if (state.inputDirectory == null && !state.positional.isEmpty()) {
-            state.inputDirectory = state.positional.get(0);
+    private static void validateRequiredDirectories(ParseState state) {
+        if (state.inputDirectory == null) {
+            throw new IllegalArgumentException("Please specify --input.");
         }
+        if (state.outputDirectory == null) {
+            throw new IllegalArgumentException("Please specify --output.");
+        }
+    }
 
-        if (state.outputDirectory == null && state.positional.size() > 1) {
-            state.outputDirectory = state.positional.get(1);
-        }
-
-        if (state.positional.size() > 2) {
-            throw new IllegalArgumentException("Unexpected positional argument: " + state.positional.get(2));
-        }
+    private static List<String> sortedList(Set<String> values) {
+        List<String> result = new ArrayList<String>(values);
+        Collections.sort(result, new Comparator<String>() {
+            public int compare(String left, String right) {
+                return left.compareTo(right);
+            }
+        });
+        return result;
     }
 
     private static final class ParseState {
@@ -227,10 +293,9 @@ public final class MikuTextBundleCli {
         private int maxChars;
         private int maxInputFileBytes;
         private EncodingOptions encoding;
-        private List<String> includePatterns;
-        private List<String> excludePatterns;
+        private Set<String> excludeExtensions;
+        private Set<String> excludeDirectories;
         private boolean verbose;
-        private List<String> positional;
     }
 
     private static final class VersionRequestedException extends Exception {
