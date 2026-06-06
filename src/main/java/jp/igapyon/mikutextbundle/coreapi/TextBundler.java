@@ -32,8 +32,9 @@ import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 import jp.igapyon.mikutextbundle.pathutils.PathUtils;
 
 public class TextBundler {
-    private static final String INDEX_FILE_NAME = "text-bundle-000-index.md";
+    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
     private static final String PROMPT_FILE_NAME = "text-bundle-000-prompt.md";
+    private static final int MAX_BUNDLE_PART_NUMBER = 998;
     private static final Pattern MARKER_PATTERN = Pattern.compile("\\b(TODO|FIXME|XXX)\\b(?!\\.)(.*)");
 
     public BundleResult createTextBundle(CliOptions options) throws IOException {
@@ -69,11 +70,11 @@ public class TextBundler {
             out.println("ignoredByOutputDirectory=" + collected.ignored.byOutputDirectory);
         }
 
-        out.println("generated: " + paths.indexPath);
+        out.println("generated: " + paths.promptPath);
         for (String partPath : paths.partPaths) {
             out.println("generated: " + partPath);
         }
-        out.println("generated: " + paths.promptPath);
+        out.println("generated: " + paths.indexPath);
 
         BundleResult result = new BundleResult();
         result.outputDirectory = outputDirectory.toString();
@@ -340,6 +341,11 @@ public class TextBundler {
     }
 
     private BundlePart createBundlePart(int partNumber, List<BundleChunk> chunks, int charCount) {
+        if (partNumber > MAX_BUNDLE_PART_NUMBER) {
+            throw new IllegalArgumentException("Part count exceeds " + MAX_BUNDLE_PART_NUMBER
+                    + "; text-bundle-999-index.md is reserved for the final index.");
+        }
+
         BundlePart part = new BundlePart();
         part.fileName = "text-bundle-" + String.format("%03d", partNumber) + ".md";
         part.partNumber = partNumber;

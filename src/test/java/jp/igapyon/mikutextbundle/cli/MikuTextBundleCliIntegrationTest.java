@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class MikuTextBundleCliIntegrationTest {
-    private static final String INDEX_FILE_NAME = "text-bundle-000-index.md";
+    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
     private static final String PROMPT_FILE_NAME = "text-bundle-000-prompt.md";
     private static final String FIRST_PART_FILE_NAME = "text-bundle-001.md";
 

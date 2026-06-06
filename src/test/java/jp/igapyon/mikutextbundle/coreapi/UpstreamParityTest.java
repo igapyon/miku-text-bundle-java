@@ -19,7 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 import jp.igapyon.mikutextbundle.model.CliOptions;
 
 class UpstreamParityTest {
-    private static final String INDEX_FILE_NAME = "text-bundle-000-index.md";
+    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
     private static final String PROMPT_FILE_NAME = "text-bundle-000-prompt.md";
     private static final String FIRST_PART_FILE_NAME = "text-bundle-001.md";
     private static final long FIXED_NOW_MILLIS = 1777914060000L;
@@ -30,7 +30,7 @@ class UpstreamParityTest {
     @Test
     void productFixtureMatchesUpstreamMarkdownOutputs() throws Exception {
         Path upstreamMain = findUpstreamMain();
-        assumeTrue(upstreamMain != null, "local upstream 0.8.0 dist/main.js is unavailable");
+        assumeTrue(upstreamMain != null, "local upstream 0.9.0 dist/main.js is unavailable");
         assumeTrue(isNodeAvailable(), "node executable is unavailable");
 
         Path javaInput = tempDir.resolve("java-input");
@@ -66,7 +66,7 @@ class UpstreamParityTest {
         candidates.add(java.nio.file.Paths.get("workplace/miku-text-bundle-devel"));
         for (Path candidate : candidates) {
             Path main = candidate.resolve("dist/main.js").toAbsolutePath().normalize();
-            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "0.8.0")) {
+            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "0.9.0")) {
                 return main;
             }
         }

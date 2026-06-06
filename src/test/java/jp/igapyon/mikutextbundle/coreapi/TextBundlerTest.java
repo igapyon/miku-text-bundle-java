@@ -2,6 +2,7 @@ package jp.igapyon.mikutextbundle.coreapi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -61,7 +62,7 @@ class TextBundlerTest {
         assertFalse(index.contains("ignored.ts"));
         assertTrue(part.contains("### src/main.ts"));
         assertTrue(part.contains("```ts"));
-        assertTrue(prompt.contains("text-bundle-000-index.md"));
+        assertTrue(prompt.contains("text-bundle-999-index.md"));
         assertTrue(prompt.contains("text-bundle-response.md"));
     }
 
@@ -228,14 +229,46 @@ class TextBundlerTest {
         String prompt = read(result.promptPath);
         assertTrue(prompt.contains("# Text Bundle Prompt\n"));
         assertTrue(prompt.contains("## 読み込み順"));
-        assertTrue(prompt.contains("1. `text-bundle-000-index.md`"));
+        assertTrue(prompt.contains("1. `text-bundle-000-prompt.md`"));
         assertTrue(prompt.contains("2. `text-bundle-001.md`"));
+        assertTrue(prompt.contains("3. `text-bundle-999-index.md`"));
         assertTrue(prompt.contains("`受領しました`"));
-        assertTrue(prompt.contains("`END_OF_TEXT_BUNDLE`"));
+        assertFalse(prompt.contains("`END_OF_TEXT_BUNDLE`"));
         assertTrue(prompt.contains("## 回答ファイル"));
         assertTrue(prompt.contains("`text-bundle-response.md`"));
         assertTrue(prompt.contains("## 出力形式"));
         assertTrue(prompt.contains("~~~~"));
+    }
+
+    @Test
+    void ordersBundleFilesByPosixRelativePathUtf16CodeUnits() throws Exception {
+        write("file-2.txt", "two\n");
+        write("file-10.txt", "ten\n");
+        write("A.txt", "upper\n");
+        write("b.txt", "lower\n");
+        write("あ.txt", "hiragana\n");
+
+        BundleResult result = create(bundleOptions(), new Date(1777913880000L));
+
+        String part = read(result.partPaths.get(0));
+        assertTrue(part.indexOf("### A.txt") < part.indexOf("### b.txt"));
+        assertTrue(part.indexOf("### b.txt") < part.indexOf("### file-10.txt"));
+        assertTrue(part.indexOf("### file-10.txt") < part.indexOf("### file-2.txt"));
+        assertTrue(part.indexOf("### file-2.txt") < part.indexOf("### あ.txt"));
+    }
+
+    @Test
+    void reservesFinalIndexFileNameForTerminalIndex() throws Exception {
+        for (int index = 1; index <= 999; index++) {
+            write("src/file-" + String.format("%03d", index) + ".txt", "x");
+        }
+        CliOptions options = bundleOptions();
+        options.maxChars = 1;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> create(options, new Date(1777913880000L)));
+
+        assertTrue(exception.getMessage().contains("text-bundle-999-index.md is reserved"));
     }
 
     @Test
@@ -273,11 +306,11 @@ class TextBundlerTest {
         assertTrue(index.contains("`docs/skip.md`"));
         assertTrue(index.contains("| `src/main.ts` | 2 | TODO | // TODO: stabilize fixture behavior |"));
 
-        assertTrue(part.indexOf("### docs/extra.md") < part.indexOf("### README.md"));
-        assertTrue(part.indexOf("### docs/skip.md") < part.indexOf("### README.md"));
-        assertTrue(part.indexOf("### README.md") < part.indexOf("### src/Alpha.java"));
+        assertTrue(part.indexOf("### README.md") < part.indexOf("### TODO.md"));
+        assertTrue(part.indexOf("### TODO.md") < part.indexOf("### docs/extra.md"));
+        assertTrue(part.indexOf("### docs/extra.md") < part.indexOf("### docs/skip.md"));
+        assertTrue(part.indexOf("### docs/skip.md") < part.indexOf("### src/Alpha.java"));
         assertTrue(part.indexOf("### src/Alpha.java") < part.indexOf("### src/main.ts"));
-        assertTrue(part.indexOf("### src/main.ts") < part.indexOf("### TODO.md"));
         assertTrue(part.contains("```java\npackage fixture;\n\npublic final class Alpha {\n}\n\n```"));
     }
 

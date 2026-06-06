@@ -84,18 +84,18 @@ class MarkdownTest {
                 "\n" +
                 "各メッセージを受け取ったら、内容の分析や要約はまだ行わず、`受領しました` とだけ返してください。\n" +
                 "\n" +
-                "`END_OF_TEXT_BUNDLE` という完了合図を受け取るまで、最終回答を開始しないでください。\n" +
+                "`text-bundle-999-index.md` を受け取るまで、最終回答を開始しないでください。\n" +
                 "\n" +
                 "## 読み込み順\n" +
                 "\n" +
-                "1. `text-bundle-000-index.md`\n" +
+                "1. `text-bundle-000-prompt.md`\n" +
                 "2. `text-bundle-001.md`\n" +
                 "3. `text-bundle-002.md`\n" +
-                "4. `END_OF_TEXT_BUNDLE`\n" +
+                "4. `text-bundle-999-index.md`\n" +
                 "\n" +
                 "## 回答ファイル\n" +
                 "\n" +
-                "`END_OF_TEXT_BUNDLE` の後に作成する回答は `text-bundle-response.md` として保存する想定です。\n" +
+                "`text-bundle-999-index.md` の後に作成する回答は `text-bundle-response.md` として保存する想定です。\n" +
                 "\n" +
                 "## 出力形式\n" +
                 "\n" +

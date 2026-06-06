@@ -82,19 +82,19 @@ public final class Markdown {
         lines.add("");
         lines.add("各メッセージを受け取ったら、内容の分析や要約はまだ行わず、`受領しました` とだけ返してください。");
         lines.add("");
-        lines.add("`END_OF_TEXT_BUNDLE` という完了合図を受け取るまで、最終回答を開始しないでください。");
+        lines.add("`text-bundle-999-index.md` を受け取るまで、最終回答を開始しないでください。");
         lines.add("");
         lines.add("## 読み込み順");
         lines.add("");
-        lines.add("1. `text-bundle-000-index.md`");
+        lines.add("1. `text-bundle-000-prompt.md`");
         for (int i = 0; i < partFileNames.size(); i++) {
             lines.add((i + 2) + ". `" + partFileNames.get(i) + "`");
         }
-        lines.add((partFileNames.size() + 2) + ". `END_OF_TEXT_BUNDLE`");
+        lines.add((partFileNames.size() + 2) + ". `text-bundle-999-index.md`");
         lines.add("");
         lines.add("## 回答ファイル");
         lines.add("");
-        lines.add("`END_OF_TEXT_BUNDLE` の後に作成する回答は `text-bundle-response.md` として保存する想定です。");
+        lines.add("`text-bundle-999-index.md` の後に作成する回答は `text-bundle-response.md` として保存する想定です。");
         lines.add("");
         lines.add("## 出力形式");
         lines.add("");

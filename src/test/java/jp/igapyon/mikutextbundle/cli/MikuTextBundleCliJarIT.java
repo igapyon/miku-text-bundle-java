@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class MikuTextBundleCliJarIT {
-    private static final String INDEX_FILE_NAME = "text-bundle-000-index.md";
+    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
     private static final String FIRST_PART_FILE_NAME = "text-bundle-001.md";
 
     @TempDir
@@ -64,7 +64,7 @@ class MikuTextBundleCliJarIT {
 
     private Path jarPath() {
         String buildDirectory = System.getProperty("project.build.directory", "target");
-        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-0.8.0");
+        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-0.9.0");
         return new File(buildDirectory, finalName + ".jar").toPath();
     }
 
