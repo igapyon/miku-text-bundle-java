@@ -8,7 +8,7 @@ This repository follows the miku-soft Java application direction.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
 - Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
-- Current upstream compatibility target: `miku-text-bundle` `v0.8.0`.
+- Current upstream compatibility target: `miku-text-bundle` `v0.9.0`.
 - Primary verification command: `mvn test`.
 - Packaged-jar verification command: `mvn verify`.
 - Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
@@ -28,13 +28,15 @@ This repository follows the miku-soft Java application direction.
 - Extension rules such as `.java=shift_jis` override the default encoding for exact final extensions.
 - The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in the index Markdown.
 
-## v0.8.0 Collection Policy
+## v0.9.0 Collection Policy
 
 - CLI input and output directories are explicit and required: `--input <dir>` and `--output <dir>`.
 - Positional input/output arguments, `--input-directory`, `--output-directory`, `--include`, and `--exclude` are removed upstream contracts and should remain rejected.
 - File discovery broadly scans regular files under the input directory.
 - Known binary extensions, default excluded directories, root `.gitignore`, and the output directory are filtered before reading candidates.
 - Ignored directory/file counts are part of the core result and verbose diagnostics.
+- The prompt is generated as `text-bundle-000-prompt.md`, bundle parts use `text-bundle-001.md` through `text-bundle-998.md`, and the terminal index is generated as `text-bundle-999-index.md`.
+- File ordering in bundle parts follows POSIX relative path UTF-16 code unit order without locale or numeric collation.
 
 ## Packaging
 

@@ -30,7 +30,7 @@ class MikuTextBundleCliTest {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("0.8.0\n", result.out);
+        assertEquals("0.9.0\n", result.out);
         assertEquals("", result.err);
     }
 

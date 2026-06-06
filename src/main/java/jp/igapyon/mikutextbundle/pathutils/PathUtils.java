@@ -26,4 +26,8 @@ public final class PathUtils {
         }
         return normalized;
     }
+
+    public static int compareUtf16CodeUnits(String left, String right) {
+        return left.compareTo(right);
+    }
 }

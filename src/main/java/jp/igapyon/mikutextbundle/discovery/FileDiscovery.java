@@ -48,7 +48,7 @@ public final class FileDiscovery {
 
         Collections.sort(result.files, new Comparator<Path>() {
             public int compare(Path left, Path right) {
-                return comparePathLikeUpstream(relativeDiscoveryPath(inputPath, left),
+                return PathUtils.compareUtf16CodeUnits(relativeDiscoveryPath(inputPath, left),
                         relativeDiscoveryPath(inputPath, right));
             }
         });
@@ -154,7 +154,7 @@ public final class FileDiscovery {
         }
         Collections.sort(entries, new Comparator<Path>() {
             public int compare(Path left, Path right) {
-                return comparePathLikeUpstream(left.getFileName().toString(), right.getFileName().toString());
+                return PathUtils.compareUtf16CodeUnits(left.getFileName().toString(), right.getFileName().toString());
             }
         });
 
@@ -220,14 +220,6 @@ public final class FileDiscovery {
             return "";
         }
         return normalized.substring(dotIndex);
-    }
-
-    private static int comparePathLikeUpstream(String left, String right) {
-        int caseInsensitive = left.compareToIgnoreCase(right);
-        if (caseInsensitive != 0) {
-            return caseInsensitive;
-        }
-        return left.compareTo(right);
     }
 
     private enum IgnoreReason {
