@@ -21,6 +21,8 @@ import jp.igapyon.mikutextbundle.pathutils.PathUtils;
  * Command line entrypoint for miku-text-bundle-java.
  */
 public final class MikuTextBundleCli {
+    private static final String DEFAULT_FILENAME_PREFIX = "text-bundle";
+
     private MikuTextBundleCli() {
     }
 
@@ -64,6 +66,7 @@ public final class MikuTextBundleCli {
         CliOptions options = new CliOptions();
         options.inputDirectory = state.inputDirectory;
         options.outputDirectory = state.outputDirectory;
+        options.filenamePrefix = state.filenamePrefix;
         options.maxChars = state.maxChars;
         options.maxInputFileBytes = state.maxInputFileBytes;
         options.encoding = state.encoding;
@@ -79,24 +82,56 @@ public final class MikuTextBundleCli {
         out.println("  miku-text-bundle --help");
         out.println("  miku-text-bundle --version");
         out.println();
+        out.println("Description:");
+        out.println("  Scan local text-like files under --input and generate split Markdown bundle");
+        out.println("  files under --output for generative AI handoff. No network access is used.");
+        out.println();
+        out.println("Default behavior:");
+        out.println("  Required: --input <dir>, --output <dir>");
+        out.println("  Defaults: --filename-prefix text-bundle, --max-chars 120000,");
+        out.println("  --max-input-file-bytes 1000000, --encoding utf-8.");
+        out.println("  Input paths are ordered by POSIX relative path using UTF-16 code units.");
+        out.println();
+        out.println("Inputs:");
+        out.println("  Reads regular files under --input. Skips known binary extensions, default");
+        out.println("  excluded directories such as .git, node_modules, dist, coverage, target,");
+        out.println("  workplace, and files ignored by the input root .gitignore.");
+        out.println();
+        out.println("Generated artifacts:");
+        out.println("  <prefix>-000-prompt.md");
+        out.println("  <prefix>-001.md ... <prefix>-998.md");
+        out.println("  <prefix>-999-index.md");
+        out.println("  These files are generated artifacts and may be regenerated.");
+        out.println();
+        out.println("Output and overwrite behavior:");
+        out.println("  Creates --output when missing. Existing generated files with the same names");
+        out.println("  are overwritten. Terminal stdout is progress/completion text, not a stable");
+        out.println("  machine-readable API. The Markdown files are the stable handoff artifacts.");
+        out.println();
+        out.println("Diagnostics and exit codes:");
+        out.println("  Skipped readable-candidate files and split warnings are recorded in");
+        out.println("  <prefix>-999-index.md. Invalid usage or processing errors are printed to");
+        out.println("  stderr. Exit code 0 means success/help/version; exit code 1 means failure.");
+        out.println();
         out.println("Options:");
-        out.println("  --max-chars <number>");
-        out.println("  --max-input-file-bytes <number>");
-        out.println("  --encoding utf-8|shift_jis");
+        out.println("  --filename-prefix <prefix>       File basename prefix. Allowed: A-Z a-z 0-9 . _ -");
+        out.println("  --max-chars <number>             Max approximate characters per part.");
+        out.println("  --max-input-file-bytes <number>  Max bytes read from one input file.");
+        out.println("  --encoding utf-8|shift_jis       Default input file encoding.");
         out.println("  --encoding-extension \".java=shift_jis\"");
         out.println("  --add-exclude-extension \".ext\"");
         out.println("  --remove-exclude-extension \".ext\"");
         out.println("  --add-exclude-directory \"dir\"");
         out.println("  --remove-exclude-directory \"dir\"");
-        out.println("  --verbose");
+        out.println("  --verbose                        Print ignored-file count details.");
         out.println();
-        out.println("Description:");
-        out.println("  Collect text-like files under the input directory and generate split");
-        out.println("  Markdown bundles for generative AI handoff.");
+        out.println("Example:");
+        out.println("  miku-text-bundle --input . --output out --filename-prefix my-repo-text-bundle");
     }
 
     private static ParseState createParseState() {
         ParseState state = new ParseState();
+        state.filenamePrefix = DEFAULT_FILENAME_PREFIX;
         state.maxChars = 120000;
         state.maxInputFileBytes = 1000000;
         state.encoding = new EncodingOptions();
@@ -124,6 +159,11 @@ public final class MikuTextBundleCli {
 
         if ("--output".equals(arg)) {
             state.outputDirectory = readRequiredOptionValue(argv, index, "--output");
+            return index + 1;
+        }
+
+        if ("--filename-prefix".equals(arg)) {
+            state.filenamePrefix = parseFilenamePrefix(readRequiredOptionValue(argv, index, "--filename-prefix"));
             return index + 1;
         }
 
@@ -268,6 +308,18 @@ public final class MikuTextBundleCli {
         }
     }
 
+    private static String parseFilenamePrefix(String value) {
+        String prefix = value.trim();
+        if (prefix.length() == 0) {
+            throw new IllegalArgumentException("--filename-prefix must not be empty.");
+        }
+        if (!prefix.matches("[A-Za-z0-9._-]+")) {
+            throw new IllegalArgumentException(
+                    "--filename-prefix must contain only ASCII letters, digits, dots, underscores, and hyphens.");
+        }
+        return prefix;
+    }
+
     private static void validateRequiredDirectories(ParseState state) {
         if (state.inputDirectory == null) {
             throw new IllegalArgumentException("Please specify --input.");
@@ -290,6 +342,7 @@ public final class MikuTextBundleCli {
     private static final class ParseState {
         private String inputDirectory;
         private String outputDirectory;
+        private String filenamePrefix;
         private int maxChars;
         private int maxInputFileBytes;
         private EncodingOptions encoding;

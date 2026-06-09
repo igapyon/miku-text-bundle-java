@@ -21,6 +21,14 @@ class MikuTextBundleCliTest {
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("miku-text-bundle --input <dir> --output <dir>"));
+        assertTrue(result.out.contains("Default behavior:"));
+        assertTrue(result.out.contains("--filename-prefix text-bundle"));
+        assertTrue(result.out.contains("Generated artifacts:"));
+        assertTrue(result.out.contains("<prefix>-999-index.md"));
+        assertTrue(result.out.contains("Output and overwrite behavior:"));
+        assertTrue(result.out.contains("stdout is progress/completion text"));
+        assertTrue(result.out.contains("Exit code 0 means success/help/version"));
+        assertTrue(result.out.contains("--filename-prefix"));
         assertTrue(result.out.contains("--add-exclude-extension"));
         assertEquals("", result.err);
     }
@@ -30,7 +38,7 @@ class MikuTextBundleCliTest {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("0.9.0\n", result.out);
+        assertEquals("1.0.0\n", result.out);
         assertEquals("", result.err);
     }
 
@@ -41,6 +49,7 @@ class MikuTextBundleCliTest {
 
         assertEquals(".", options.inputDirectory);
         assertEquals("out", options.outputDirectory);
+        assertEquals("text-bundle", options.filenamePrefix);
         assertEquals(1000, options.maxChars);
         assertEquals(2000, options.maxInputFileBytes);
         assertEquals(SupportedEncoding.UTF_8, options.encoding.defaultEncoding);
@@ -59,6 +68,31 @@ class MikuTextBundleCliTest {
         assertTrue(options.excludeDirectories.contains("generated"));
         assertTrue(options.excludeDirectories.contains("logs"));
         assertFalse(options.excludeDirectories.contains("dist"));
+    }
+
+    @Test
+    void parseArgsParsesFilenamePrefix() throws Exception {
+        CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out",
+                "--filename-prefix", "  repo.bundle_1  " });
+
+        assertEquals("repo.bundle_1", options.filenamePrefix);
+    }
+
+    @Test
+    void invalidFilenamePrefixReturnsUsageError() {
+        CliResult empty = run("--input", ".", "--output", "out", "--filename-prefix", "   ");
+        CliResult slash = run("--input", ".", "--output", "out", "--filename-prefix", "bad/name");
+        CliResult backslash = run("--input", ".", "--output", "out", "--filename-prefix", "bad\\name");
+        CliResult newline = run("--input", ".", "--output", "out", "--filename-prefix", "bad\nname");
+
+        assertEquals(1, empty.exitCode);
+        assertTrue(empty.err.contains("--filename-prefix must not be empty"));
+        assertEquals(1, slash.exitCode);
+        assertTrue(slash.err.contains("--filename-prefix must contain only"));
+        assertEquals(1, backslash.exitCode);
+        assertTrue(backslash.err.contains("--filename-prefix must contain only"));
+        assertEquals(1, newline.exitCode);
+        assertTrue(newline.err.contains("--filename-prefix must contain only"));
     }
 
     @Test

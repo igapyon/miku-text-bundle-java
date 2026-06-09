@@ -59,6 +59,23 @@ class MikuTextBundleCliIntegrationTest {
     }
 
     @Test
+    void appliesFilenamePrefixThroughCli() throws Exception {
+        Path output = tempDir.resolve("out");
+        write("README.md", "# README\n");
+
+        CliResult result = run("--input", tempDir.toString(), "--output", output.toString(),
+                "--filename-prefix", "sample-repo-text-bundle");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("sample-repo-text-bundle-000-prompt.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-000-prompt.md"))
+                .contains("sample-repo-text-bundle-999-index.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### README.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-999-index.md"))
+                .contains("sample-repo-text-bundle-001.md"));
+    }
+
+    @Test
     void invalidInputDirectoryReturnsUsageError() {
         CliResult result = run("--input", tempDir.resolve("missing").toString(), "--output",
                 tempDir.resolve("out").toString());

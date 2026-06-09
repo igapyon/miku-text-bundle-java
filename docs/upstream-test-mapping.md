@@ -20,7 +20,8 @@ focused regression:
   mvn test -Dtest=MikuTextBundleCliTest
 
 notes:
-  - CLI coverage maps upstream v0.9.0 required `--input` / `--output` parsing.
+  - CLI coverage maps upstream v1.0.0 required `--input` / `--output` parsing.
+  - CLI filename prefix coverage maps upstream `--filename-prefix` parser validation.
   - CLI encoding option coverage maps upstream `--encoding` and `--encoding-extension` parser tests.
   - Exclude extension and directory list operation tests map upstream `--add-exclude-*` and `--remove-exclude-*`.
   - Removed positional, `--input-directory`, `--output-directory`, `--include`, `--exclude`, `-h`, and `-v` behavior is covered as rejection cases.
@@ -107,11 +108,11 @@ focused regression:
 
 notes:
   - Extension-specific and default Shift_JIS decoding cases map the upstream explicit input encoding behavior.
-  - v0.9.0 broad recursive discovery, default binary extension exclusion, directory exclusion, output-directory exclusion, ignored counters, terminal index, and UTF-16 code unit ordering are covered.
+  - v1.0.0 broad recursive discovery, default binary extension exclusion, directory exclusion, output-directory exclusion, ignored counters, terminal index, filename prefix, and UTF-16 code unit ordering are covered.
   - Java uses JDK Charset decoding instead of upstream iconv-lite.
-  - UpstreamParityTest compares generated Markdown with a local upstream `dist/main.js` only when the checkout is version `0.9.0`.
+  - UpstreamParityTest compares generated Markdown with a local upstream `dist/main.js` only when the checkout is version `1.0.0`.
   - A local upstream root can be supplied with `-DmikuTextBundle.upstreamRoot=/path/to/miku-text-bundle`.
-  - The parity test is skipped when Node or a local upstream 0.9.0 build is unavailable.
+  - The parity test is skipped when Node or a local upstream 1.0.0 build is unavailable.
 ```
 
 ```text

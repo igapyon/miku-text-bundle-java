@@ -35,6 +35,23 @@ class MikuTextBundleCliJarIT {
     }
 
     @Test
+    void packagedJarAppliesFilenamePrefix() throws Exception {
+        Path input = tempDir.resolve("input");
+        Path output = tempDir.resolve("output");
+        write(input.resolve("README.md"), "# README\n");
+
+        ProcessResult result = runJar("--input", input.toString(), "--output", output.toString(),
+                "--filename-prefix", "sample-repo-text-bundle");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.stdout.contains("sample-repo-text-bundle-000-prompt.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### README.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-999-index.md"))
+                .contains("sample-repo-text-bundle-001.md"));
+        assertEquals("", result.stderr);
+    }
+
+    @Test
     void packagedJarReturnsNonZeroForInvalidInputDirectory() throws Exception {
         ProcessResult result = runJar("--input", tempDir.resolve("missing").toString(), "--output",
                 tempDir.resolve("out").toString());
@@ -64,7 +81,7 @@ class MikuTextBundleCliJarIT {
 
     private Path jarPath() {
         String buildDirectory = System.getProperty("project.build.directory", "target");
-        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-0.9.0");
+        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-1.0.0");
         return new File(buildDirectory, finalName + ".jar").toPath();
     }
 

@@ -2,6 +2,26 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-06-09: Follow `miku-text-bundle` v1.0.0
+
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, tag `v1.0.0`.
+- Upstream tag commit: `2b0a60ef012a0c715818e85fb0918b86f89e9fc9`.
+- Upstream checkout updated locally under `workplace/miku-text-bundle-upstream/`.
+- Main upstream changes:
+  - `--filename-prefix <prefix>` was added
+  - generated prompt, part, and index file names can use a custom prefix
+  - prompt reading order reflects the generated file names
+  - `--help` was expanded into a short runtime contract for agents and scripts
+- Java changes made:
+  - project and CLI version updated to `1.0.0`
+  - CLI parser and core API now validate and apply filename prefixes
+  - prompt Markdown generation now receives actual prompt and index file names
+  - tests added for CLI parsing, core generation, CLI integration, and packaged jar prefix behavior
+- Verification:
+  - Java `mvn test`: passed on 2026-06-09
+  - Java `mvn verify`: passed on 2026-06-09
+  - `UpstreamParityTest`: skipped because a local upstream `v1.0.0` build was unavailable
+
 ## 2026-06-06: Follow `miku-text-bundle` v0.9.0
 
 - Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, tag `v0.9.0`.

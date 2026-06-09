@@ -241,6 +241,39 @@ class TextBundlerTest {
     }
 
     @Test
+    void usesCustomFilenamePrefixForGeneratedBundleFiles() throws Exception {
+        write("README.md", "# README\n");
+        write("src/main.ts", "const value = 1;\n");
+        CliOptions options = bundleOptions();
+        options.filenamePrefix = "sample-repo-text-bundle";
+
+        BundleResult result = create(options, new Date(1777913880000L));
+
+        assertTrue(result.promptPath.endsWith("sample-repo-text-bundle-000-prompt.md"));
+        assertTrue(result.partPaths.get(0).endsWith("sample-repo-text-bundle-001.md"));
+        assertTrue(result.indexPath.endsWith("sample-repo-text-bundle-999-index.md"));
+
+        String prompt = read(result.promptPath);
+        String index = read(result.indexPath);
+        assertTrue(prompt.contains("1. `sample-repo-text-bundle-000-prompt.md`"));
+        assertTrue(prompt.contains("2. `sample-repo-text-bundle-001.md`"));
+        assertTrue(prompt.contains("3. `sample-repo-text-bundle-999-index.md`"));
+        assertTrue(index.contains("| `sample-repo-text-bundle-001.md` |"));
+    }
+
+    @Test
+    void rejectsUnsafeFilenamePrefixesThroughCoreApi() throws Exception {
+        write("README.md", "# README\n");
+        CliOptions options = bundleOptions();
+        options.filenamePrefix = "bad/name";
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> create(options, new Date(1777913880000L)));
+
+        assertTrue(exception.getMessage().contains("filenamePrefix must contain only"));
+    }
+
+    @Test
     void ordersBundleFilesByPosixRelativePathUtf16CodeUnits() throws Exception {
         write("file-2.txt", "two\n");
         write("file-10.txt", "ten\n");
