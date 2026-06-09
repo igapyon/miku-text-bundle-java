@@ -8,6 +8,6 @@ class MikuTextBundleTest {
     @Test
     void exposesProductMetadataForJavaEntrypoints() {
         assertEquals("miku-text-bundle-java", MikuTextBundle.productName());
-        assertEquals("0.9.0", MikuTextBundle.VERSION);
+        assertEquals("1.0.0", MikuTextBundle.VERSION);
     }
 }

@@ -8,7 +8,7 @@ This repository is a Java straight-conversion version of the upstream TypeScript
 
 - https://github.com/igapyon/miku-text-bundle
 
-See [Release Notes: v0.9.0](docs/release-notes-v0.9.0.md) for the latest upstream-following changes.
+See [Release Notes: v1.0.0](docs/release-notes-v1.0.0.md) for the latest upstream-following changes.
 
 ## Requirements
 
@@ -25,13 +25,13 @@ mvn package
 The executable jar is created under `target/`.
 
 ```text
-target/miku-text-bundle-java-0.9.0.jar
+target/miku-text-bundle-java-1.0.0.jar
 ```
 
 ## Quick Start
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle
 ```
 
 Both `--input` and `--output` are required.
@@ -39,13 +39,14 @@ Both `--input` and `--output` are required.
 ## CLI Usage
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input <dir> --output <dir> [options]
+java -jar target/miku-text-bundle-java-1.0.0.jar --input <dir> --output <dir> [options]
 ```
 
 Options:
 
 | Option | Description | Default |
 | --- | --- | --- |
+| `--filename-prefix <prefix>` | Set the generated Markdown file basename prefix. Allowed characters are ASCII letters, digits, `.`, `_`, and `-`. | `text-bundle` |
 | `--max-chars <number>` | Approximate maximum characters per bundle part. Oversized files may be split. | `120000` |
 | `--max-input-file-bytes <number>` | Skip input files larger than this byte size. | `1000000` |
 | `--encoding utf-8\|shift_jis` | Set the default input file encoding. | `utf-8` |
@@ -77,6 +78,14 @@ generated: /path/to/out/text-bundle-999-index.md
 completed: 1 part(s), 2 file(s) collected, 0 file(s) skipped, 1 directories ignored, 0 file(s) ignored
 ```
 
+Use `--filename-prefix` when writing multiple Text Bundles into the same workflow:
+
+```sh
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --filename-prefix my-repo-text-bundle
+```
+
+This generates files such as `my-repo-text-bundle-000-prompt.md`, `my-repo-text-bundle-001.md`, and `my-repo-text-bundle-999-index.md`.
+
 ## File Selection
 
 By default, the tool broadly collects regular files under the input directory.
@@ -97,7 +106,7 @@ The default input encoding is UTF-8. Use `--encoding shift_jis` to read collecte
 Per-extension rules override the default encoding:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
 ```
 
 Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in `text-bundle-999-index.md`.
@@ -105,15 +114,15 @@ Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-de
 Use `--add-exclude-extension` and `--remove-exclude-extension` to adjust extension-based filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle --add-exclude-extension ".wasm,.bin"
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle --remove-exclude-extension ".pdf"
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --add-exclude-extension ".wasm,.bin"
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --remove-exclude-extension ".pdf"
 ```
 
 Use `--add-exclude-directory` and `--remove-exclude-directory` to adjust directory filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle --add-exclude-directory "generated"
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle --remove-exclude-directory "dist"
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --add-exclude-directory "generated"
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --remove-exclude-directory "dist"
 ```
 
 ## Examples
@@ -121,25 +130,25 @@ java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bun
 Bundle the current repository:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle
 ```
 
 Bundle a repository and write to a known directory:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input /path/to/repo --output /path/to/out
+java -jar target/miku-text-bundle-java-1.0.0.jar --input /path/to/repo --output /path/to/out
 ```
 
 Show diagnostics:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle --verbose
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --verbose
 ```
 
 Use smaller bundle parts:
 
 ```sh
-java -jar target/miku-text-bundle-java-0.9.0.jar --input . --output out/text-bundle --max-chars 60000
+java -jar target/miku-text-bundle-java-1.0.0.jar --input . --output out/text-bundle --max-chars 60000
 ```
 
 ## Development
@@ -158,7 +167,7 @@ mvn verify
 
 ## Repository Operation
 
-- `docs/` contains miku-soft design documents and project maintenance notes.
+- `docs/` contains project maintenance notes, upstream mapping documents, release notes, and the miku-soft reference link.
 - `workplace/` is for local upstream checkouts, temporary verification data, generated files, and other scratch work.
 - The local upstream checkout used for straight conversion can be placed under `workplace/miku-text-bundle-upstream/` or `workplace/miku-text-bundle-devel/`.
 - Only `workplace/.gitkeep` is tracked under `workplace/`.

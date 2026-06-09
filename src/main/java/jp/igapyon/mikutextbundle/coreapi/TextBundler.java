@@ -32,8 +32,7 @@ import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 import jp.igapyon.mikutextbundle.pathutils.PathUtils;
 
 public class TextBundler {
-    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
-    private static final String PROMPT_FILE_NAME = "text-bundle-000-prompt.md";
+    private static final String DEFAULT_FILENAME_PREFIX = "text-bundle";
     private static final int MAX_BUNDLE_PART_NUMBER = 998;
     private static final Pattern MARKER_PATTERN = Pattern.compile("\\b(TODO|FIXME|XXX)\\b(?!\\.)(.*)");
 
@@ -48,14 +47,15 @@ public class TextBundler {
         }
 
         Path outputDirectory = chooseOutputDirectory(options.outputDirectory);
+        String filenamePrefix = normalizeFilenamePrefix(options.filenamePrefix);
         Files.createDirectories(outputDirectory);
 
         List<String> gitignorePatterns = readRootGitignore(inputPath);
         CollectedFilesResult collected = collectFiles(inputPath, outputDirectory, options, gitignorePatterns);
         List<Marker> markers = collectMarkers(collected.files);
-        BundlePartsResult partsResult = buildParts(collected.files, options.maxChars);
+        BundlePartsResult partsResult = buildParts(collected.files, options.maxChars, filenamePrefix);
 
-        BundleMarkdownPaths paths = writeBundleMarkdownFiles(outputDirectory, inputPath, partsResult.parts, collected.files,
+        BundleMarkdownPaths paths = writeBundleMarkdownFiles(outputDirectory, filenamePrefix, inputPath, partsResult.parts, collected.files,
                 collected.skipped, markers, partsResult.warnings);
 
         if (options.verbose) {
@@ -224,7 +224,7 @@ public class TextBundler {
         return file;
     }
 
-    private BundlePartsResult buildParts(List<CollectedFile> files, int maxChars) {
+    private BundlePartsResult buildParts(List<CollectedFile> files, int maxChars, String filenamePrefix) {
         BundleChunksResult chunksResult = buildChunks(files, maxChars);
         List<BundlePart> parts = new ArrayList<BundlePart>();
         List<BundleChunk> currentChunks = new ArrayList<BundleChunk>();
@@ -232,7 +232,7 @@ public class TextBundler {
 
         for (BundleChunk chunk : chunksResult.chunks) {
             if (!currentChunks.isEmpty() && currentChars + chunk.content.length() > maxChars) {
-                parts.add(createBundlePart(parts.size() + 1, currentChunks, currentChars));
+                parts.add(createBundlePart(filenamePrefix, parts.size() + 1, currentChunks, currentChars));
                 currentChunks = new ArrayList<BundleChunk>();
                 currentChars = 0;
             }
@@ -241,7 +241,7 @@ public class TextBundler {
         }
 
         if (!currentChunks.isEmpty()) {
-            parts.add(createBundlePart(parts.size() + 1, currentChunks, currentChars));
+            parts.add(createBundlePart(filenamePrefix, parts.size() + 1, currentChunks, currentChars));
         }
 
         return new BundlePartsResult(parts, chunksResult.warnings);
@@ -340,25 +340,27 @@ public class TextBundler {
         return chunks;
     }
 
-    private BundlePart createBundlePart(int partNumber, List<BundleChunk> chunks, int charCount) {
+    private BundlePart createBundlePart(String filenamePrefix, int partNumber, List<BundleChunk> chunks, int charCount) {
         if (partNumber > MAX_BUNDLE_PART_NUMBER) {
             throw new IllegalArgumentException("Part count exceeds " + MAX_BUNDLE_PART_NUMBER
-                    + "; text-bundle-999-index.md is reserved for the final index.");
+                    + "; " + bundleIndexFileName(filenamePrefix) + " is reserved for the final index.");
         }
 
         BundlePart part = new BundlePart();
-        part.fileName = "text-bundle-" + String.format("%03d", partNumber) + ".md";
+        part.fileName = bundlePartFileName(filenamePrefix, partNumber);
         part.partNumber = partNumber;
         part.chunks.addAll(chunks);
         part.charCount = charCount;
         return part;
     }
 
-    private BundleMarkdownPaths writeBundleMarkdownFiles(Path outputDirectory, Path inputDirectory, List<BundlePart> parts,
+    private BundleMarkdownPaths writeBundleMarkdownFiles(Path outputDirectory, String filenamePrefix, Path inputDirectory, List<BundlePart> parts,
             List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles, List<Marker> markers, List<String> warnings)
             throws IOException {
-        Path indexPath = outputDirectory.resolve(INDEX_FILE_NAME);
-        Path promptPath = outputDirectory.resolve(PROMPT_FILE_NAME);
+        String indexFileName = bundleIndexFileName(filenamePrefix);
+        String promptFileName = bundlePromptFileName(filenamePrefix);
+        Path indexPath = outputDirectory.resolve(indexFileName);
+        Path promptPath = outputDirectory.resolve(promptFileName);
         List<String> partPaths = new ArrayList<String>();
         List<String> partFileNames = new ArrayList<String>();
 
@@ -371,9 +373,34 @@ public class TextBundler {
 
         Files.write(indexPath, Markdown.buildIndexMarkdown(inputDirectory.toString(), outputDirectory.toString(), parts,
                 collectedFiles, skippedFiles, markers, warnings).getBytes(StandardCharsets.UTF_8));
-        Files.write(promptPath, Markdown.buildPromptMarkdown(partFileNames).getBytes(StandardCharsets.UTF_8));
+        Files.write(promptPath, Markdown.buildPromptMarkdown(promptFileName, partFileNames, indexFileName)
+                .getBytes(StandardCharsets.UTF_8));
 
         return new BundleMarkdownPaths(indexPath.toString(), promptPath.toString(), partPaths);
+    }
+
+    private String normalizeFilenamePrefix(String value) {
+        String prefix = value == null ? DEFAULT_FILENAME_PREFIX : value.trim();
+        if (prefix.length() == 0) {
+            throw new IllegalArgumentException("filenamePrefix must not be empty.");
+        }
+        if (!prefix.matches("[A-Za-z0-9._-]+")) {
+            throw new IllegalArgumentException(
+                    "filenamePrefix must contain only ASCII letters, digits, dots, underscores, and hyphens.");
+        }
+        return prefix;
+    }
+
+    private String bundlePromptFileName(String filenamePrefix) {
+        return filenamePrefix + "-000-prompt.md";
+    }
+
+    private String bundlePartFileName(String filenamePrefix, int partNumber) {
+        return filenamePrefix + "-" + String.format("%03d", partNumber) + ".md";
+    }
+
+    private String bundleIndexFileName(String filenamePrefix) {
+        return filenamePrefix + "-999-index.md";
     }
 
     private String relativeInputPath(Path inputPath, Path filePath) {
