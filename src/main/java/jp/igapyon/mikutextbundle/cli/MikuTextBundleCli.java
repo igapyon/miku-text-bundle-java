@@ -102,6 +102,7 @@ public final class MikuTextBundleCli {
         out.println("  <prefix>-001.md ... <prefix>-998.md");
         out.println("  <prefix>-999-index.md");
         out.println("  These files are generated artifacts and may be regenerated.");
+        out.println("  For Web UI, pasting <prefix>-000-prompt.md as the first message body is recommended, not required.");
         out.println();
         out.println("Output and overwrite behavior:");
         out.println("  Creates --output when missing. Existing generated files with the same names");
@@ -127,6 +128,7 @@ public final class MikuTextBundleCli {
         out.println();
         out.println("Example:");
         out.println("  miku-text-bundle --input . --output out --filename-prefix my-repo-text-bundle");
+        out.println();
     }
 
     private static ParseState createParseState() {

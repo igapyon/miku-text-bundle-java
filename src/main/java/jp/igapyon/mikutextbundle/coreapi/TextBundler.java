@@ -213,14 +213,14 @@ public class TextBundler {
     private SkippedFile skippedForOversizedFile(String relativePath, int maxInputFileBytes) {
         SkippedFile file = new SkippedFile();
         file.relativePath = relativePath;
-        file.reason = "ファイルサイズが " + maxInputFileBytes + " bytes の上限を超えたためスキップしました。";
+        file.reason = "File size exceeds the " + maxInputFileBytes + " byte limit.";
         return file;
     }
 
     private SkippedFile skippedForUnreadableFile(String relativePath, SupportedEncoding encoding) {
         SkippedFile file = new SkippedFile();
         file.relativePath = relativePath;
-        file.reason = encoding.displayName + " として読めない、またはバイナリと判定したためスキップしました。";
+        file.reason = "Skipped because the file cannot be decoded as " + encoding.displayName + " or was detected as binary.";
         return file;
     }
 
@@ -253,7 +253,7 @@ public class TextBundler {
         for (CollectedFile file : files) {
             List<BundleChunk> fileChunks = splitOversizedFile(file, maxChars);
             if (fileChunks.size() > 1) {
-                warnings.add("`" + file.relativePath + "` は --max-chars を超えたため " + fileChunks.size() + " 個に分割しました。");
+                warnings.add("`" + file.relativePath + "` exceeded --max-chars and was split into " + fileChunks.size() + " chunks.");
             }
             chunks.addAll(fileChunks);
         }
@@ -334,7 +334,7 @@ public class TextBundler {
             chunk.originalLineCount = file.lineCount;
             chunk.chunkIndex = i + 1;
             chunk.chunkCount = chunkContents.size();
-            chunk.splitReason = "このファイルはサイズ上限を超えたため、やむを得ず分割しました。";
+            chunk.splitReason = "This file exceeded the size limit and was split.";
             chunks.add(chunk);
         }
         return chunks;
@@ -371,12 +371,27 @@ public class TextBundler {
             partFileNames.add(part.fileName);
         }
 
-        Files.write(indexPath, Markdown.buildIndexMarkdown(inputDirectory.toString(), outputDirectory.toString(), parts,
+        Files.write(indexPath, Markdown.buildIndexMarkdown(displayPathFromCurrentDirectory(inputDirectory),
+                displayPathFromCurrentDirectory(outputDirectory), parts,
                 collectedFiles, skippedFiles, markers, warnings).getBytes(StandardCharsets.UTF_8));
         Files.write(promptPath, Markdown.buildPromptMarkdown(promptFileName, partFileNames, indexFileName)
                 .getBytes(StandardCharsets.UTF_8));
 
         return new BundleMarkdownPaths(indexPath.toString(), promptPath.toString(), partPaths);
+    }
+
+    private String displayPathFromCurrentDirectory(Path path) {
+        Path currentDirectory = Paths.get("").toAbsolutePath().normalize();
+        try {
+            Path relativePath = currentDirectory.relativize(path.toAbsolutePath().normalize());
+            String value = relativePath.toString();
+            if (value.length() == 0) {
+                return ".";
+            }
+            return PathUtils.toPosixPath(value);
+        } catch (IllegalArgumentException ex) {
+            return PathUtils.toPosixPath(path.toString());
+        }
     }
 
     private String normalizeFilenamePrefix(String value) {

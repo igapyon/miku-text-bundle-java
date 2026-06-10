@@ -81,7 +81,7 @@ class MikuTextBundleCliJarIT {
 
     private Path jarPath() {
         String buildDirectory = System.getProperty("project.build.directory", "target");
-        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-1.0.0");
+        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-1.0.1");
         return new File(buildDirectory, finalName + ".jar").toPath();
     }
 
