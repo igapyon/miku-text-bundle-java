@@ -58,10 +58,12 @@ class TextBundlerTest {
         assertTrue(index.contains("`src/main.ts`"));
         assertTrue(index.contains("FIXME"));
         assertTrue(index.contains("`.gitignore`"));
+        assertFalse(index.contains("Input directory: `" + tempDir.toAbsolutePath().normalize().toString() + "`"));
+        assertFalse(index.contains("Output directory: `" + tempDir.resolve("out").toAbsolutePath().normalize().toString() + "`"));
         assertFalse(index.contains(".git/secret.ts"));
         assertFalse(index.contains("ignored.ts"));
         assertTrue(part.contains("### src/main.ts"));
-        assertTrue(part.contains("```ts"));
+        assertTrue(part.contains("~~~ts"));
         assertTrue(prompt.contains("text-bundle-999-index.md"));
         assertTrue(prompt.contains("text-bundle-response.md"));
     }
@@ -118,8 +120,8 @@ class TextBundlerTest {
         String index = read(result.indexPath);
         String firstPart = read(result.partPaths.get(0));
         assertTrue(index.contains("--max-chars"));
-        assertTrue(firstPart.contains("やむを得ず分割"));
-        assertTrue(firstPart.indexOf("やむを得ず分割") < firstPart.indexOf("```ts"));
+        assertTrue(firstPart.contains("This file exceeded the size limit and was split."));
+        assertTrue(firstPart.indexOf("This file exceeded the size limit and was split.") < firstPart.indexOf("~~~ts"));
     }
 
     @Test
@@ -136,7 +138,7 @@ class TextBundlerTest {
         assertEquals(1, result.filesCollected);
         assertEquals(1, result.filesSkipped);
         assertTrue(index.contains("`docs/huge.md`"));
-        assertTrue(index.contains("ファイルサイズ"));
+        assertTrue(index.contains("File size exceeds the 100 byte limit."));
         assertFalse(part.contains("docs/huge.md"));
     }
 
@@ -228,15 +230,15 @@ class TextBundlerTest {
 
         String prompt = read(result.promptPath);
         assertTrue(prompt.contains("# Text Bundle Prompt\n"));
-        assertTrue(prompt.contains("## 読み込み順"));
+        assertTrue(prompt.contains("## Reading Order"));
         assertTrue(prompt.contains("1. `text-bundle-000-prompt.md`"));
         assertTrue(prompt.contains("2. `text-bundle-001.md`"));
         assertTrue(prompt.contains("3. `text-bundle-999-index.md`"));
-        assertTrue(prompt.contains("`受領しました`"));
+        assertTrue(prompt.contains("`Received`"));
         assertFalse(prompt.contains("`END_OF_TEXT_BUNDLE`"));
-        assertTrue(prompt.contains("## 回答ファイル"));
+        assertTrue(prompt.contains("## Response File"));
         assertTrue(prompt.contains("`text-bundle-response.md`"));
-        assertTrue(prompt.contains("## 出力形式"));
+        assertTrue(prompt.contains("## Output Format"));
         assertTrue(prompt.contains("~~~~"));
     }
 
@@ -316,7 +318,7 @@ class TextBundlerTest {
         assertTrue(part.contains("- Characters: 17"));
         assertTrue(part.contains("- Source characters: 17"));
         assertTrue(part.contains("- Source lines: 2"));
-        assertTrue(part.contains("```ts\nconst value = 1;\n\n```"));
+        assertTrue(part.contains("~~~ts\nconst value = 1;\n\n~~~"));
     }
 
     @Test
@@ -344,7 +346,7 @@ class TextBundlerTest {
         assertTrue(part.indexOf("### docs/extra.md") < part.indexOf("### docs/skip.md"));
         assertTrue(part.indexOf("### docs/skip.md") < part.indexOf("### src/Alpha.java"));
         assertTrue(part.indexOf("### src/Alpha.java") < part.indexOf("### src/main.ts"));
-        assertTrue(part.contains("```java\npackage fixture;\n\npublic final class Alpha {\n}\n\n```"));
+        assertTrue(part.contains("~~~java\npackage fixture;\n\npublic final class Alpha {\n}\n\n~~~"));
     }
 
     private BundleResult create(CliOptions options, Date now) throws IOException {

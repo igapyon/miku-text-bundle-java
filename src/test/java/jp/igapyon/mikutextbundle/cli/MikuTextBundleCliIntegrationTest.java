@@ -54,7 +54,7 @@ class MikuTextBundleCliIntegrationTest {
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("completed:"));
         assertTrue(index.contains("`docs/huge.md`"));
-        assertTrue(index.contains("100 bytes"));
+        assertTrue(index.contains("100 byte limit"));
         assertFalse(part.contains("docs/huge.md"));
     }
 

@@ -25,6 +25,7 @@ class MikuTextBundleCliTest {
         assertTrue(result.out.contains("--filename-prefix text-bundle"));
         assertTrue(result.out.contains("Generated artifacts:"));
         assertTrue(result.out.contains("<prefix>-999-index.md"));
+        assertTrue(result.out.contains("recommended, not required"));
         assertTrue(result.out.contains("Output and overwrite behavior:"));
         assertTrue(result.out.contains("stdout is progress/completion text"));
         assertTrue(result.out.contains("Exit code 0 means success/help/version"));
@@ -38,7 +39,7 @@ class MikuTextBundleCliTest {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("1.0.0\n", result.out);
+        assertEquals("1.0.1\n", result.out);
         assertEquals("", result.err);
     }
 

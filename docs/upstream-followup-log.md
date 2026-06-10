@@ -2,6 +2,12 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-06-10: Follow `miku-text-bundle` v1.0.1
+
+- Upstream source checked: local `miku-text-bundle` workspace updated to `1.0.1`.
+- Java version updated to `1.0.1`.
+- CLI `--help` text aligned with the Node.js runtime, including the Web UI `000-prompt` handoff recommendation.
+
 ## 2026-06-09: Follow `miku-text-bundle` v1.0.0
 
 - Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, tag `v1.0.0`.

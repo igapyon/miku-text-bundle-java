@@ -10,6 +10,7 @@ import jp.igapyon.mikutextbundle.model.BundlePart;
 import jp.igapyon.mikutextbundle.model.CollectedFile;
 import jp.igapyon.mikutextbundle.model.Marker;
 import jp.igapyon.mikutextbundle.model.SkippedFile;
+import jp.igapyon.mikutextbundle.core.MikuTextBundle;
 
 public final class Markdown {
     private static final Map<String, String> EXTENSION_LANGUAGES = new HashMap<String, String>();
@@ -32,6 +33,7 @@ public final class Markdown {
 
     public static String buildPartMarkdown(BundlePart part) {
         List<String> lines = new ArrayList<String>();
+        lines.addAll(frontMatter("part", "part: " + part.partNumber));
         lines.add("# Text Bundle Part " + pad3(part.partNumber));
         lines.add("");
         lines.add("- Part file: `" + part.fileName + "`");
@@ -49,6 +51,7 @@ public final class Markdown {
     public static String buildIndexMarkdown(String inputDirectory, String outputDirectory, List<BundlePart> parts,
             List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles, List<Marker> markers, List<String> warnings) {
         List<String> lines = new ArrayList<String>();
+        lines.addAll(frontMatter("index", "terminal: true"));
         lines.add("# Text Bundle Index");
         lines.add("");
         lines.add("## Summary");
@@ -59,6 +62,7 @@ public final class Markdown {
         lines.add("- Skipped files: " + skippedFiles.size());
         lines.add("- Parts: " + parts.size());
         lines.add("");
+        lines.addAll(agentSkillHandoffSection(agentSkillPaths(collectedFiles)));
         lines.add("## Parts");
         lines.add("");
         lines.addAll(partsTable(parts));
@@ -80,15 +84,23 @@ public final class Markdown {
 
     public static String buildPromptMarkdown(String promptFileName, List<String> partFileNames, String indexFileName) {
         List<String> lines = new ArrayList<String>();
+        lines.add("---");
+        lines.add("tool: miku-text-bundle");
+        lines.add("version: " + MikuTextBundle.VERSION);
+        lines.add("role: prompt");
+        lines.add("---");
+        lines.add("");
         lines.add("# Text Bundle Prompt");
         lines.add("");
-        lines.add("これから Markdown バンドルを複数のメッセージに分けて順番に送ります。");
+        lines.add("This is the reading instruction for a Text Bundle that packages a set of files for handoff to generative AI or similar tools.");
         lines.add("");
-        lines.add("各メッセージを受け取ったら、内容の分析や要約はまだ行わず、`受領しました` とだけ返してください。");
+        lines.add("The Markdown bundle will be sent in multiple messages in the order listed below.");
         lines.add("");
-        lines.add("`" + indexFileName + "` を受け取るまで、最終回答を開始しないでください。");
+        lines.add("After each message, do not analyze or summarize the content yet. Reply only with `Received`.");
         lines.add("");
-        lines.add("## 読み込み順");
+        lines.add("Do not start the final response until you receive `" + indexFileName + "`.");
+        lines.add("");
+        lines.add("## Reading Order");
         lines.add("");
         lines.add("1. `" + promptFileName + "`");
         for (int i = 0; i < partFileNames.size(); i++) {
@@ -96,15 +108,15 @@ public final class Markdown {
         }
         lines.add((partFileNames.size() + 2) + ". `" + indexFileName + "`");
         lines.add("");
-        lines.add("## 回答ファイル");
+        lines.add("## Response File");
         lines.add("");
-        lines.add("`" + indexFileName + "` の後に作成する回答は `text-bundle-response.md` として保存する想定です。");
+        lines.add("If you save the final response after `" + indexFileName + "`, `text-bundle-response.md` is the recommended filename.");
         lines.add("");
-        lines.add("## 出力形式");
+        lines.add("## Output Format");
         lines.add("");
-        lines.add("markdown テキスト形式で出力してください。");
+        lines.add("Output the final response as Markdown text.");
         lines.add("");
-        lines.add("○最終的な回答は Markdown テキスト形式で出力し、さらに ~~~~ で囲まれた一塊として出力してください。markdown 内に backtick による code fence が含まれる場合があるため、外側の囲みは tilde を使ってください。");
+        lines.add("Wrap the entire final Markdown response in a single outer fence using `~~~~`. Use tildes for the outer fence because the Markdown response may contain backtick code fences.");
         lines.add("");
         return join(lines, "\n");
     }
@@ -124,7 +136,7 @@ public final class Markdown {
 
         lines.add("");
         if (chunk.splitReason != null) {
-            lines.add("このファイルはサイズ上限を超えたため、やむを得ず分割しました。元ファイル: `" + chunk.relativePath + "`。分割: " + chunk.chunkIndex + " / " + chunk.chunkCount + "。");
+            lines.add("This file exceeded the size limit and was split. Source file: `" + chunk.relativePath + "`. Split: " + chunk.chunkIndex + " / " + chunk.chunkCount + ".");
             lines.add("");
         }
 
@@ -140,14 +152,14 @@ public final class Markdown {
         int longest = 2;
         int current = 0;
         for (int i = 0; i < content.length(); i++) {
-            if (content.charAt(i) == '`') {
+            if (content.charAt(i) == '~') {
                 current++;
                 longest = Math.max(longest, current);
             } else {
                 current = 0;
             }
         }
-        return repeat("`", longest + 1);
+        return repeat("~", longest + 1);
     }
 
     private static String languageFor(String extension) {
@@ -176,7 +188,7 @@ public final class Markdown {
     private static List<String> skippedFilesTable(List<SkippedFile> skippedFiles) {
         if (skippedFiles.isEmpty()) {
             List<String> lines = new ArrayList<String>();
-            lines.add("- なし");
+            lines.add("- None");
             lines.add("");
             return lines;
         }
@@ -192,7 +204,7 @@ public final class Markdown {
 
     private static String markerTable(List<Marker> markers) {
         if (markers.isEmpty()) {
-            return "- なし\n";
+            return "- None\n";
         }
         List<List<String>> rows = new ArrayList<List<String>>();
         for (Marker marker : markers) {
@@ -210,12 +222,69 @@ public final class Markdown {
     private static List<String> warningList(List<String> warnings) {
         List<String> lines = new ArrayList<String>();
         if (warnings.isEmpty()) {
-            lines.add("- なし");
+            lines.add("- None");
         } else {
             for (String warning : warnings) {
                 lines.add("- " + warning);
             }
         }
+        lines.add("");
+        return lines;
+    }
+
+    private static List<String> agentSkillPaths(List<CollectedFile> collectedFiles) {
+        List<String> skillPaths = new ArrayList<String>();
+        for (CollectedFile file : collectedFiles) {
+            if (isAgentSkillPath(file.relativePath)) {
+                skillPaths.add(file.relativePath);
+            }
+        }
+        return skillPaths;
+    }
+
+    private static boolean isAgentSkillPath(String relativePath) {
+        if ("SKILL.md".equals(relativePath)) {
+            return true;
+        }
+        return relativePath.matches("skills/[^/]+/SKILL\\.md");
+    }
+
+    private static List<String> agentSkillHandoffSection(List<String> skillPaths) {
+        List<String> lines = new ArrayList<String>();
+        if (skillPaths.isEmpty()) {
+            return lines;
+        }
+
+        lines.add("## Agent Skill Handoff");
+        lines.add("");
+        lines.add("This Text Bundle includes Agent Skill definitions.");
+        lines.add("");
+        lines.add("Read the following `SKILL.md` files as the primary Agent Skill instructions and keep them available for reference in this conversation.");
+        lines.add("");
+        for (String skillPath : skillPaths) {
+            lines.add("- " + code(skillPath));
+        }
+        lines.add("");
+        lines.add("After receiving this `999-index` file, the Text Bundle loading is complete. If the user asks to use this Agent Skill or the target product, prioritize the relevant `SKILL.md` activation rules, operating rules, workflow, and references, and work from the related files in this bundle.");
+        lines.add("");
+        lines.add("If higher-priority system, developer, or user instructions apply, follow those instructions first.");
+        lines.add("");
+        return lines;
+    }
+
+    private static List<String> frontMatter(String role, String extra) {
+        List<String> lines = frontMatter(role);
+        lines.add(lines.size() - 2, extra);
+        return lines;
+    }
+
+    private static List<String> frontMatter(String role) {
+        List<String> lines = new ArrayList<String>();
+        lines.add("---");
+        lines.add("tool: miku-text-bundle");
+        lines.add("version: " + MikuTextBundle.VERSION);
+        lines.add("role: " + role);
+        lines.add("---");
         lines.add("");
         return lines;
     }

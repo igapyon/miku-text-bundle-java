@@ -17,7 +17,14 @@ import jp.igapyon.mikutextbundle.model.SkippedFile;
 class MarkdownTest {
     @Test
     void buildsStablePartMarkdown() {
-        assertEquals("# Text Bundle Part 001\n" +
+        assertEquals("---\n" +
+                "tool: miku-text-bundle\n" +
+                "version: 1.0.1\n" +
+                "role: part\n" +
+                "part: 1\n" +
+                "---\n" +
+                "\n" +
+                "# Text Bundle Part 001\n" +
                 "\n" +
                 "- Part file: `text-bundle-001.md`\n" +
                 "- Files/chunks: 1\n" +
@@ -29,17 +36,33 @@ class MarkdownTest {
                 "- Source characters: 17\n" +
                 "- Source lines: 2\n" +
                 "\n" +
-                "```ts\n" +
+                "~~~ts\n" +
                 "const value = 1;\n" +
                 "\n" +
-                "```\n" +
+                "~~~\n" +
                 "\n",
                 Markdown.buildPartMarkdown(part()));
     }
 
     @Test
+    void usesLongerTildeFencesWhenContentContainsTildeFences() {
+        BundlePart part = part();
+        part.chunks.get(0).content = "~~~md\ninside\n~~~\n";
+
+        org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part)
+                .contains("~~~~ts\n~~~md\ninside\n~~~\n\n~~~~"));
+    }
+
+    @Test
     void buildsStableIndexMarkdown() {
-        assertEquals("# Text Bundle Index\n" +
+        assertEquals("---\n" +
+                "tool: miku-text-bundle\n" +
+                "version: 1.0.1\n" +
+                "role: index\n" +
+                "terminal: true\n" +
+                "---\n" +
+                "\n" +
+                "# Text Bundle Index\n" +
                 "\n" +
                 "## Summary\n" +
                 "\n" +
@@ -59,11 +82,11 @@ class MarkdownTest {
                 "\n" +
                 "| File | Reason |\n" +
                 "| --- | --- |\n" +
-                "| `docs/huge.md` | ファイルサイズが 100 bytes の上限を超えたためスキップしました。 |\n" +
+                "| `docs/huge.md` | File size exceeds the 100 byte limit. |\n" +
                 "\n" +
                 "## Warnings\n" +
                 "\n" +
-                "- `src/large.ts` は --max-chars を超えたため 2 個に分割しました。\n" +
+                "- `src/large.ts` exceeded --max-chars and was split into 2 chunks.\n" +
                 "\n" +
                 "## Markers\n" +
                 "\n" +
@@ -73,35 +96,66 @@ class MarkdownTest {
                 "\n",
                 Markdown.buildIndexMarkdown("/repo", "/repo/workplace/miku-text-bundle/202605051200",
                         Arrays.asList(part()), collectedFiles(), skippedFiles(), markers(),
-                        Arrays.asList("`src/large.ts` は --max-chars を超えたため 2 個に分割しました。")));
+                        Arrays.asList("`src/large.ts` exceeded --max-chars and was split into 2 chunks.")));
+    }
+
+    @Test
+    void addsAgentSkillHandoffGuidanceWhenSkillMarkdownIsBundled() {
+        CollectedFile skillFile = new CollectedFile();
+        skillFile.absolutePath = "/repo/skills/example/SKILL.md";
+        skillFile.relativePath = "skills/example/SKILL.md";
+        skillFile.extension = "md";
+        skillFile.content = "---\nname: example\n---\n";
+        skillFile.charCount = 22;
+        skillFile.lineCount = 3;
+
+        List<CollectedFile> files = new ArrayList<CollectedFile>(collectedFiles());
+        files.add(skillFile);
+
+        String index = Markdown.buildIndexMarkdown("/repo", "/repo/workplace/miku-text-bundle/202605051200",
+                Arrays.asList(part()), files, skippedFiles(), markers(),
+                Arrays.asList("`src/large.ts` exceeded --max-chars and was split into 2 chunks."));
+
+        org.junit.jupiter.api.Assertions.assertTrue(index.contains("## Agent Skill Handoff"));
+        org.junit.jupiter.api.Assertions.assertTrue(index.contains("`skills/example/SKILL.md`"));
+        org.junit.jupiter.api.Assertions.assertTrue(index.contains("keep them available for reference in this conversation"));
+        org.junit.jupiter.api.Assertions.assertTrue(index.contains("activation rules, operating rules, workflow, and references"));
     }
 
     @Test
     void buildsStablePromptMarkdown() {
-        assertEquals("# Text Bundle Prompt\n" +
+        assertEquals("---\n" +
+                "tool: miku-text-bundle\n" +
+                "version: 1.0.1\n" +
+                "role: prompt\n" +
+                "---\n" +
                 "\n" +
-                "これから Markdown バンドルを複数のメッセージに分けて順番に送ります。\n" +
+                "# Text Bundle Prompt\n" +
                 "\n" +
-                "各メッセージを受け取ったら、内容の分析や要約はまだ行わず、`受領しました` とだけ返してください。\n" +
+                "This is the reading instruction for a Text Bundle that packages a set of files for handoff to generative AI or similar tools.\n" +
                 "\n" +
-                "`text-bundle-999-index.md` を受け取るまで、最終回答を開始しないでください。\n" +
+                "The Markdown bundle will be sent in multiple messages in the order listed below.\n" +
                 "\n" +
-                "## 読み込み順\n" +
+                "After each message, do not analyze or summarize the content yet. Reply only with `Received`.\n" +
+                "\n" +
+                "Do not start the final response until you receive `text-bundle-999-index.md`.\n" +
+                "\n" +
+                "## Reading Order\n" +
                 "\n" +
                 "1. `text-bundle-000-prompt.md`\n" +
                 "2. `text-bundle-001.md`\n" +
                 "3. `text-bundle-002.md`\n" +
                 "4. `text-bundle-999-index.md`\n" +
                 "\n" +
-                "## 回答ファイル\n" +
+                "## Response File\n" +
                 "\n" +
-                "`text-bundle-999-index.md` の後に作成する回答は `text-bundle-response.md` として保存する想定です。\n" +
+                "If you save the final response after `text-bundle-999-index.md`, `text-bundle-response.md` is the recommended filename.\n" +
                 "\n" +
-                "## 出力形式\n" +
+                "## Output Format\n" +
                 "\n" +
-                "markdown テキスト形式で出力してください。\n" +
+                "Output the final response as Markdown text.\n" +
                 "\n" +
-                "○最終的な回答は Markdown テキスト形式で出力し、さらに ~~~~ で囲まれた一塊として出力してください。markdown 内に backtick による code fence が含まれる場合があるため、外側の囲みは tilde を使ってください。\n",
+                "Wrap the entire final Markdown response in a single outer fence using `~~~~`. Use tildes for the outer fence because the Markdown response may contain backtick code fences.\n",
                 Markdown.buildPromptMarkdown(Arrays.asList("text-bundle-001.md", "text-bundle-002.md")));
     }
 
@@ -137,7 +191,7 @@ class MarkdownTest {
     private List<SkippedFile> skippedFiles() {
         SkippedFile file = new SkippedFile();
         file.relativePath = "docs/huge.md";
-        file.reason = "ファイルサイズが 100 bytes の上限を超えたためスキップしました。";
+        file.reason = "File size exceeds the 100 byte limit.";
         return Arrays.asList(file);
     }
 
