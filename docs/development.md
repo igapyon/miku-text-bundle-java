@@ -8,7 +8,7 @@ This repository follows the miku-soft Java application direction.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
 - Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
-- Current upstream compatibility target: `miku-text-bundle` `v1.1.0`.
+- Current upstream compatibility target: `miku-text-bundle` `v1.1.1`.
 - Primary verification command: `mvn test`.
 - Packaged-jar verification command: `mvn verify`.
 - Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
