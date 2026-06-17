@@ -6,7 +6,7 @@
 
   <groupId>jp.igapyon</groupId>
   <artifactId>miku-text-bundle-java</artifactId>
-  <version>1.0.1</version>
+  <version>1.1.0</version>
   <packaging>jar</packaging>
 
   <name>miku-text-bundle-java</name>

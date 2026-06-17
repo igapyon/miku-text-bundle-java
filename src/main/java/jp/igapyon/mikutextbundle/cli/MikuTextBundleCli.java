@@ -98,11 +98,11 @@ public final class MikuTextBundleCli {
         out.println("  workplace, and files ignored by the input root .gitignore.");
         out.println();
         out.println("Generated artifacts:");
-        out.println("  <prefix>-000-prompt.md");
-        out.println("  <prefix>-001.md ... <prefix>-998.md");
-        out.println("  <prefix>-999-index.md");
+        out.println("  <prefix>-001.md ... <prefix>-999.md");
         out.println("  These files are generated artifacts and may be regenerated.");
-        out.println("  For Web UI, pasting <prefix>-000-prompt.md as the first message body is recommended, not required.");
+        out.println("  The first part embeds the prompt. The final part embeds the terminal index.");
+        out.println("  For Web UI, pasting the prompt section from <prefix>-001.md as the first");
+        out.println("  message body is recommended, not required.");
         out.println();
         out.println("Output and overwrite behavior:");
         out.println("  Creates --output when missing. Existing generated files with the same names");
@@ -111,7 +111,7 @@ public final class MikuTextBundleCli {
         out.println();
         out.println("Diagnostics and exit codes:");
         out.println("  Skipped readable-candidate files and split warnings are recorded in");
-        out.println("  <prefix>-999-index.md. Invalid usage or processing errors are printed to");
+        out.println("  the final part index. Invalid usage or processing errors are printed to");
         out.println("  stderr. Exit code 0 means success/help/version; exit code 1 means failure.");
         out.println();
         out.println("Options:");

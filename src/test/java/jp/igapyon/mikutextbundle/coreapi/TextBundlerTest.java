@@ -33,7 +33,7 @@ class TextBundlerTest {
     }
 
     @Test
-    void generatesIndexPartsAndPromptFromDefaultRepositoryFiles() throws Exception {
+    void generatesCompactPartFilesWithEmbeddedPromptAndIndexFromDefaultRepositoryFiles() throws Exception {
         write("README.md", "# README\n");
         write("TODO.md", "- TODO root item\n");
         write("src/main.ts", "const value = 1;\n// FIXME check later\n");
@@ -50,11 +50,17 @@ class TextBundlerTest {
         assertEquals(1, result.ignoredByGitignore);
         assertEquals(0, result.ignoredByOutputDirectory);
         assertEquals(1, result.partsGenerated);
+        assertEquals(result.partPaths.get(0), result.promptPath);
+        assertEquals(result.partPaths.get(0), result.indexPath);
 
-        String index = read(result.indexPath);
+        String output = read(result.indexPath);
+        String index = indexSection(output);
         String part = read(result.partPaths.get(0));
         String prompt = read(result.promptPath);
 
+        assertTrue(part.contains("# Text Bundle Prompt"));
+        assertTrue(part.contains("# Text Bundle Part 001"));
+        assertTrue(part.contains("# Text Bundle Index"));
         assertTrue(index.contains("`src/main.ts`"));
         assertTrue(index.contains("FIXME"));
         assertTrue(index.contains("`.gitignore`"));
@@ -64,7 +70,7 @@ class TextBundlerTest {
         assertFalse(index.contains("ignored.ts"));
         assertTrue(part.contains("### src/main.ts"));
         assertTrue(part.contains("~~~ts"));
-        assertTrue(prompt.contains("text-bundle-999-index.md"));
+        assertTrue(prompt.contains("text-bundle-001.md"));
         assertTrue(prompt.contains("text-bundle-response.md"));
     }
 
@@ -117,7 +123,7 @@ class TextBundlerTest {
         BundleResult result = create(options, new Date(1777913640000L));
 
         assertTrue(result.partsGenerated > 1);
-        String index = read(result.indexPath);
+        String index = indexSection(read(result.indexPath));
         String firstPart = read(result.partPaths.get(0));
         assertTrue(index.contains("--max-chars"));
         assertTrue(firstPart.contains("This file exceeded the size limit and was split."));
@@ -133,8 +139,8 @@ class TextBundlerTest {
 
         BundleResult result = create(options, new Date(1777913760000L));
 
-        String index = read(result.indexPath);
-        String part = read(result.partPaths.get(0));
+        String index = indexSection(read(result.indexPath));
+        String part = partBodySection(read(result.partPaths.get(0)));
         assertEquals(1, result.filesCollected);
         assertEquals(1, result.filesSkipped);
         assertTrue(index.contains("`docs/huge.md`"));
@@ -151,7 +157,7 @@ class TextBundlerTest {
 
         BundleResult result = create(bundleOptions(), new Date(1777913700000L));
 
-        String index = read(result.indexPath);
+        String index = indexSection(read(result.indexPath));
         String part = read(result.partPaths.get(0));
         assertTrue(index.contains("`README.md`"));
         assertFalse(index.contains("assets/image.png"));
@@ -177,7 +183,7 @@ class TextBundlerTest {
 
         BundleResult result = create(options, new Date(1777913700000L));
 
-        String index = read(result.indexPath);
+        String index = indexSection(read(result.indexPath));
         assertTrue(index.contains("`README.md`"));
         assertTrue(index.contains("`dist/generated.md`"));
         assertTrue(index.contains("`assets/document.pdf`"));
@@ -199,7 +205,7 @@ class TextBundlerTest {
 
         BundleResult result = create(bundleOptions(), new Date(1777913820000L));
 
-        String index = read(result.indexPath);
+        String index = indexSection(read(result.indexPath));
         assertTrue(index.contains("# Text Bundle Index\n"));
         assertTrue(index.indexOf("## Summary") < index.indexOf("## Parts"));
         assertTrue(index.indexOf("## Parts") < index.indexOf("## Skipped Files"));
@@ -216,7 +222,7 @@ class TextBundlerTest {
 
         BundleResult result = create(bundleOptions(), new Date(1777914000000L));
 
-        String index = read(result.indexPath);
+        String index = indexSection(read(result.indexPath));
         assertTrue(index.contains("TODO: actionable item"));
         assertFalse(index.contains("See TODO.md for project tasks."));
     }
@@ -231,9 +237,8 @@ class TextBundlerTest {
         String prompt = read(result.promptPath);
         assertTrue(prompt.contains("# Text Bundle Prompt\n"));
         assertTrue(prompt.contains("## Reading Order"));
-        assertTrue(prompt.contains("1. `text-bundle-000-prompt.md`"));
-        assertTrue(prompt.contains("2. `text-bundle-001.md`"));
-        assertTrue(prompt.contains("3. `text-bundle-999-index.md`"));
+        assertTrue(prompt.contains("1. `text-bundle-001.md`"));
+        assertFalse(prompt.contains("2. `text-bundle-001.md`"));
         assertTrue(prompt.contains("`Received`"));
         assertFalse(prompt.contains("`END_OF_TEXT_BUNDLE`"));
         assertTrue(prompt.contains("## Response File"));
@@ -251,15 +256,14 @@ class TextBundlerTest {
 
         BundleResult result = create(options, new Date(1777913880000L));
 
-        assertTrue(result.promptPath.endsWith("sample-repo-text-bundle-000-prompt.md"));
+        assertTrue(result.promptPath.endsWith("sample-repo-text-bundle-001.md"));
         assertTrue(result.partPaths.get(0).endsWith("sample-repo-text-bundle-001.md"));
-        assertTrue(result.indexPath.endsWith("sample-repo-text-bundle-999-index.md"));
+        assertTrue(result.indexPath.endsWith("sample-repo-text-bundle-001.md"));
 
         String prompt = read(result.promptPath);
         String index = read(result.indexPath);
-        assertTrue(prompt.contains("1. `sample-repo-text-bundle-000-prompt.md`"));
-        assertTrue(prompt.contains("2. `sample-repo-text-bundle-001.md`"));
-        assertTrue(prompt.contains("3. `sample-repo-text-bundle-999-index.md`"));
+        assertTrue(prompt.contains("1. `sample-repo-text-bundle-001.md`"));
+        assertFalse(prompt.contains("2. `sample-repo-text-bundle-001.md`"));
         assertTrue(index.contains("| `sample-repo-text-bundle-001.md` |"));
     }
 
@@ -293,17 +297,16 @@ class TextBundlerTest {
     }
 
     @Test
-    void reservesFinalIndexFileNameForTerminalIndex() throws Exception {
+    void allowsTextBundle999AsFinalCompactPart() throws Exception {
         for (int index = 1; index <= 999; index++) {
             write("src/file-" + String.format("%03d", index) + ".txt", "x");
         }
         CliOptions options = bundleOptions();
         options.maxChars = 1;
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> create(options, new Date(1777913880000L)));
+        BundleResult result = create(options, new Date(1777913880000L));
 
-        assertTrue(exception.getMessage().contains("text-bundle-999-index.md is reserved"));
+        assertTrue(result.partPaths.get(result.partPaths.size() - 1).endsWith("text-bundle-999.md"));
     }
 
     @Test
@@ -333,7 +336,7 @@ class TextBundlerTest {
         assertEquals(0, result.filesSkipped);
         assertEquals(1, result.partsGenerated);
 
-        String index = read(result.indexPath);
+        String index = indexSection(read(result.indexPath));
         String part = read(result.partPaths.get(0));
 
         assertTrue(index.contains("| `text-bundle-001.md` | 6 |"));
@@ -352,6 +355,16 @@ class TextBundlerTest {
     private BundleResult create(CliOptions options, Date now) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         return new TextBundler().createTextBundle(options, now, new PrintStream(out));
+    }
+
+    private String indexSection(String content) {
+        int indexStart = content.indexOf("# Text Bundle Index");
+        return indexStart < 0 ? content : content.substring(indexStart);
+    }
+
+    private String partBodySection(String content) {
+        int indexStart = content.indexOf("# Text Bundle Index");
+        return indexStart < 0 ? content : content.substring(0, indexStart);
     }
 
     private CliOptions bundleOptions() {

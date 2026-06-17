@@ -2,6 +2,26 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-06-17: Follow `miku-text-bundle` devel v1.1.0
+
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch commit `57f70cd82f442376a02593c72d409fef7d994407`.
+- Upstream release status checked: latest GitHub Release remains `v1.0.1`; devel `package.json` version is `1.1.0`.
+- Main upstream changes:
+  - standalone `000-prompt` and `999-index` files were replaced by compact part output
+  - first part embeds the prompt section
+  - final part embeds the terminal index section
+  - part file numbers now run through `999`
+- Java changes made:
+  - project and CLI version updated to `1.1.0`
+  - core output generation now writes compact part files only
+  - `BundleResult.promptPath` and `BundleResult.indexPath` now point to the first and final part files
+  - CLI help, README, release notes, and regression tests updated for compact output
+- Verification:
+  - upstream Node `npm run build`: passed on 2026-06-17
+  - Java `mvn test`: passed on 2026-06-17
+  - Java `mvn verify`: passed on 2026-06-17
+  - `UpstreamParityTest` with `-DmikuTextBundle.upstreamRoot=workplace/miku-text-bundle-upstream`: passed on 2026-06-17
+
 ## 2026-06-10: Follow `miku-text-bundle` v1.0.1
 
 - Upstream source checked: local `miku-text-bundle` workspace updated to `1.0.1`.

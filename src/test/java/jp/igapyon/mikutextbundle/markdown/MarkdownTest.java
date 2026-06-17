@@ -19,7 +19,7 @@ class MarkdownTest {
     void buildsStablePartMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.0.1\n" +
+                "version: 1.1.0\n" +
                 "role: part\n" +
                 "part: 1\n" +
                 "---\n" +
@@ -57,7 +57,7 @@ class MarkdownTest {
     void buildsStableIndexMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.0.1\n" +
+                "version: 1.1.0\n" +
                 "role: index\n" +
                 "terminal: true\n" +
                 "---\n" +
@@ -126,7 +126,7 @@ class MarkdownTest {
     void buildsStablePromptMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.0.1\n" +
+                "version: 1.1.0\n" +
                 "role: prompt\n" +
                 "---\n" +
                 "\n" +
@@ -138,18 +138,16 @@ class MarkdownTest {
                 "\n" +
                 "After each message, do not analyze or summarize the content yet. Reply only with `Received`.\n" +
                 "\n" +
-                "Do not start the final response until you receive `text-bundle-999-index.md`.\n" +
+                "Do not start the final response until you receive `text-bundle-002.md`.\n" +
                 "\n" +
                 "## Reading Order\n" +
                 "\n" +
-                "1. `text-bundle-000-prompt.md`\n" +
-                "2. `text-bundle-001.md`\n" +
-                "3. `text-bundle-002.md`\n" +
-                "4. `text-bundle-999-index.md`\n" +
+                "1. `text-bundle-001.md`\n" +
+                "2. `text-bundle-002.md`\n" +
                 "\n" +
                 "## Response File\n" +
                 "\n" +
-                "If you save the final response after `text-bundle-999-index.md`, `text-bundle-response.md` is the recommended filename.\n" +
+                "If you save the final response after `text-bundle-002.md`, `text-bundle-response.md` is the recommended filename.\n" +
                 "\n" +
                 "## Output Format\n" +
                 "\n" +

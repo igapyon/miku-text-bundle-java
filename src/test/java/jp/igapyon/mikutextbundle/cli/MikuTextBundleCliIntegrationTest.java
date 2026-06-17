@@ -15,8 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class MikuTextBundleCliIntegrationTest {
-    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
-    private static final String PROMPT_FILE_NAME = "text-bundle-000-prompt.md";
+    private static final String INDEX_FILE_NAME = "text-bundle-001.md";
+    private static final String PROMPT_FILE_NAME = "text-bundle-001.md";
     private static final String FIRST_PART_FILE_NAME = "text-bundle-001.md";
 
     @TempDir
@@ -55,7 +55,7 @@ class MikuTextBundleCliIntegrationTest {
         assertTrue(result.out.contains("completed:"));
         assertTrue(index.contains("`docs/huge.md`"));
         assertTrue(index.contains("100 byte limit"));
-        assertFalse(part.contains("docs/huge.md"));
+        assertFalse(partBodySection(part).contains("docs/huge.md"));
     }
 
     @Test
@@ -67,12 +67,12 @@ class MikuTextBundleCliIntegrationTest {
                 "--filename-prefix", "sample-repo-text-bundle");
 
         assertEquals(0, result.exitCode);
-        assertTrue(result.out.contains("sample-repo-text-bundle-000-prompt.md"));
-        assertTrue(read(output.resolve("sample-repo-text-bundle-000-prompt.md"))
-                .contains("sample-repo-text-bundle-999-index.md"));
-        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### README.md"));
-        assertTrue(read(output.resolve("sample-repo-text-bundle-999-index.md"))
+        assertTrue(result.out.contains("sample-repo-text-bundle-001.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md"))
                 .contains("sample-repo-text-bundle-001.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### README.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md"))
+                .contains("# Text Bundle Index"));
     }
 
     @Test
@@ -158,6 +158,11 @@ class MikuTextBundleCliIntegrationTest {
 
     private String read(Path path) throws IOException {
         return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+    }
+
+    private String partBodySection(String content) {
+        int indexStart = content.indexOf("# Text Bundle Index");
+        return indexStart < 0 ? content : content.substring(0, indexStart);
     }
 
     private String repeat(String value, int count) {
