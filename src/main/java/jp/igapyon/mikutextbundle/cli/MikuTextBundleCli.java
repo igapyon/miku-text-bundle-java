@@ -100,9 +100,8 @@ public final class MikuTextBundleCli {
         out.println("Generated artifacts:");
         out.println("  <prefix>-001.md ... <prefix>-999.md");
         out.println("  These files are generated artifacts and may be regenerated.");
-        out.println("  The first part embeds the prompt. The final part embeds the terminal index.");
-        out.println("  For Web UI, pasting the prompt section from <prefix>-001.md as the first");
-        out.println("  message body is recommended, not required.");
+        out.println("  The first part includes the prompt instructions.");
+        out.println("  The final part includes the terminal index.");
         out.println();
         out.println("Output and overwrite behavior:");
         out.println("  Creates --output when missing. Existing generated files with the same names");

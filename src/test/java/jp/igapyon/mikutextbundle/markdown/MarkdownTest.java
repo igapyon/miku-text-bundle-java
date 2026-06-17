@@ -19,7 +19,7 @@ class MarkdownTest {
     void buildsStablePartMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.1.0\n" +
+                "version: 1.1.1\n" +
                 "role: part\n" +
                 "part: 1\n" +
                 "---\n" +
@@ -57,7 +57,7 @@ class MarkdownTest {
     void buildsStableIndexMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.1.0\n" +
+                "version: 1.1.1\n" +
                 "role: index\n" +
                 "terminal: true\n" +
                 "---\n" +
@@ -126,7 +126,7 @@ class MarkdownTest {
     void buildsStablePromptMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.1.0\n" +
+                "version: 1.1.1\n" +
                 "role: prompt\n" +
                 "---\n" +
                 "\n" +

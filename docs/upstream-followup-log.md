@@ -2,6 +2,28 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-06-18: Follow `miku-text-bundle` v1.1.1
+
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch commit `1cb4b9c20d55773722768f231542872cccaacdf9`.
+- Upstream tags observed after fetch: `v1.1.0.1`, `v1.1.1`, and `v1.1.1.1`.
+- Main upstream changes:
+  - package version updated to `1.1.1`
+  - CLI help now says the first part includes prompt instructions
+  - CLI help now says the final part includes the terminal index
+  - old Web UI prompt-pasting recommendation was removed from CLI help
+- Upstream issue observed and fixed:
+  - commit `6f9bcbc140b0ce21be4911b8b9ad1acddf1de39c` had `package.json` at `1.1.1` while `src/cli.ts` still exported `CLI_VERSION = "1.1.0"`
+  - commit `1cb4b9c20d55773722768f231542872cccaacdf9` fixes `CLI_VERSION` to `1.1.1`
+- Java changes made:
+  - project and CLI version updated to `1.1.1`
+  - CLI help and help tests aligned with upstream wording
+  - upstream parity version gate updated to `1.1.1`
+  - README, release notes, and maintenance notes updated
+- Verification:
+  - upstream Node `npm run build`: passed on 2026-06-18 after the upstream `CLI_VERSION` fix
+  - Java `mvn test`: passed on 2026-06-18
+  - Java `mvn verify`: passed on 2026-06-18
+
 ## 2026-06-17: Follow `miku-text-bundle` devel v1.1.0
 
 - Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch commit `57f70cd82f442376a02593c72d409fef7d994407`.
