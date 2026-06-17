@@ -2,13 +2,13 @@
 
 `miku-text-bundle-java` is a Java CLI that collects text files from a repository and writes them as split Markdown bundle files for generative AI handoff.
 
-It is useful when a repository is too large to paste into an AI chat in one message. The tool creates an index, one or more bundle parts, and a prompt file that describes the reading order.
+It is useful when a repository is too large to paste into an AI chat in one message. The tool creates one or more compact bundle part files; the first part embeds the prompt and the final part embeds the index.
 
 This repository is a Java straight-conversion version of the upstream TypeScript project:
 
 - https://github.com/igapyon/miku-text-bundle
 
-See [Release Notes: v1.0.1](docs/release-notes-v1.0.1.md) for the latest upstream-following changes.
+See [Release Notes: v1.1.0](docs/release-notes-v1.1.0.md) for the latest upstream-following changes.
 
 ## Requirements
 
@@ -25,13 +25,13 @@ mvn package
 The executable jar is created under `target/`.
 
 ```text
-target/miku-text-bundle-java-1.0.1.jar
+target/miku-text-bundle-java-1.1.0.jar
 ```
 
 ## Quick Start
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle
 ```
 
 Both `--input` and `--output` are required.
@@ -39,7 +39,7 @@ Both `--input` and `--output` are required.
 ## CLI Usage
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input <dir> --output <dir> [options]
+java -jar target/miku-text-bundle-java-1.1.0.jar --input <dir> --output <dir> [options]
 ```
 
 Options:
@@ -65,26 +65,22 @@ Each run generates:
 
 | File | Purpose |
 | --- | --- |
-| `text-bundle-000-prompt.md` | Prompt that tells the receiver how to read the bundle files. |
-| `text-bundle-001.md`, `text-bundle-002.md`, ... | Collected source and text content split into Markdown parts. |
-| `text-bundle-999-index.md` | Summary, part list, skipped files, warnings, and TODO/FIXME/XXX markers. |
+| `text-bundle-001.md`, `text-bundle-002.md`, ... | Collected source and text content split into compact Markdown parts. The first part includes the prompt, and the final part includes the index. |
 
 The CLI prints generated file paths and a completion summary:
 
 ```text
-generated: /path/to/out/text-bundle-000-prompt.md
 generated: /path/to/out/text-bundle-001.md
-generated: /path/to/out/text-bundle-999-index.md
 completed: 1 part(s), 2 file(s) collected, 0 file(s) skipped, 1 directories ignored, 0 file(s) ignored
 ```
 
 Use `--filename-prefix` when writing multiple Text Bundles into the same workflow:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --filename-prefix my-repo-text-bundle
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --filename-prefix my-repo-text-bundle
 ```
 
-This generates files such as `my-repo-text-bundle-000-prompt.md`, `my-repo-text-bundle-001.md`, and `my-repo-text-bundle-999-index.md`.
+This generates files such as `my-repo-text-bundle-001.md`, `my-repo-text-bundle-002.md`, and later numbered part files when needed.
 
 ## File Selection
 
@@ -106,23 +102,23 @@ The default input encoding is UTF-8. Use `--encoding shift_jis` to read collecte
 Per-extension rules override the default encoding:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
 ```
 
-Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in `text-bundle-999-index.md`.
+Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in the final part's index section.
 
 Use `--add-exclude-extension` and `--remove-exclude-extension` to adjust extension-based filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --add-exclude-extension ".wasm,.bin"
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --remove-exclude-extension ".pdf"
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --add-exclude-extension ".wasm,.bin"
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --remove-exclude-extension ".pdf"
 ```
 
 Use `--add-exclude-directory` and `--remove-exclude-directory` to adjust directory filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --add-exclude-directory "generated"
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --remove-exclude-directory "dist"
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --add-exclude-directory "generated"
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --remove-exclude-directory "dist"
 ```
 
 ## Examples
@@ -130,25 +126,25 @@ java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bun
 Bundle the current repository:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle
 ```
 
 Bundle a repository and write to a known directory:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input /path/to/repo --output /path/to/out
+java -jar target/miku-text-bundle-java-1.1.0.jar --input /path/to/repo --output /path/to/out
 ```
 
 Show diagnostics:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --verbose
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --verbose
 ```
 
 Use smaller bundle parts:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.0.1.jar --input . --output out/text-bundle --max-chars 60000
+java -jar target/miku-text-bundle-java-1.1.0.jar --input . --output out/text-bundle --max-chars 60000
 ```
 
 ## Development

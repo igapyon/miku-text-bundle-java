@@ -19,8 +19,8 @@ import org.junit.jupiter.api.io.TempDir;
 import jp.igapyon.mikutextbundle.model.CliOptions;
 
 class UpstreamParityTest {
-    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
-    private static final String PROMPT_FILE_NAME = "text-bundle-000-prompt.md";
+    private static final String INDEX_FILE_NAME = "text-bundle-001.md";
+    private static final String PROMPT_FILE_NAME = "text-bundle-001.md";
     private static final String FIRST_PART_FILE_NAME = "text-bundle-001.md";
     private static final long FIXED_NOW_MILLIS = 1777914060000L;
 
@@ -30,7 +30,7 @@ class UpstreamParityTest {
     @Test
     void productFixtureMatchesUpstreamMarkdownOutputs() throws Exception {
         Path upstreamMain = findUpstreamMain();
-        assumeTrue(upstreamMain != null, "local upstream 1.0.1 dist/main.js is unavailable");
+        assumeTrue(upstreamMain != null, "local upstream 1.1.0 dist/main.js is unavailable");
         assumeTrue(isNodeAvailable(), "node executable is unavailable");
 
         Path javaInput = tempDir.resolve("java-input");
@@ -50,10 +50,12 @@ class UpstreamParityTest {
                 new PrintStream(new ByteArrayOutputStream()));
         runUpstream(upstreamMain, upstreamInput, upstreamOutput);
 
-        assertEquals(normalizeIndex(read(upstreamOutput.resolve(INDEX_FILE_NAME)), upstreamInput, upstreamOutput),
-                normalizeIndex(read(javaOutput.resolve(INDEX_FILE_NAME)), javaInput, javaOutput));
-        assertEquals(read(upstreamOutput.resolve(FIRST_PART_FILE_NAME)), read(javaOutput.resolve(FIRST_PART_FILE_NAME)));
-        assertEquals(read(upstreamOutput.resolve(PROMPT_FILE_NAME)), read(javaOutput.resolve(PROMPT_FILE_NAME)));
+        assertEquals(normalizeGeneratedMarkdown(read(upstreamOutput.resolve(INDEX_FILE_NAME)), upstreamInput, upstreamOutput),
+                normalizeGeneratedMarkdown(read(javaOutput.resolve(INDEX_FILE_NAME)), javaInput, javaOutput));
+        assertEquals(normalizeGeneratedMarkdown(read(upstreamOutput.resolve(FIRST_PART_FILE_NAME)), upstreamInput, upstreamOutput),
+                normalizeGeneratedMarkdown(read(javaOutput.resolve(FIRST_PART_FILE_NAME)), javaInput, javaOutput));
+        assertEquals(normalizeGeneratedMarkdown(read(upstreamOutput.resolve(PROMPT_FILE_NAME)), upstreamInput, upstreamOutput),
+                normalizeGeneratedMarkdown(read(javaOutput.resolve(PROMPT_FILE_NAME)), javaInput, javaOutput));
     }
 
     private Path findUpstreamMain() throws IOException {
@@ -66,7 +68,7 @@ class UpstreamParityTest {
         candidates.add(java.nio.file.Paths.get("workplace/miku-text-bundle-devel"));
         for (Path candidate : candidates) {
             Path main = candidate.resolve("dist/main.js").toAbsolutePath().normalize();
-            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "1.0.1")) {
+            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "1.1.0")) {
                 return main;
             }
         }
@@ -110,7 +112,7 @@ class UpstreamParityTest {
         assertEquals(0, exitCode, "upstream parity command failed\nstdout:\n" + stdout + "\nstderr:\n" + stderr);
     }
 
-    private String normalizeIndex(String value, Path inputDirectory, Path outputDirectory) {
+    private String normalizeGeneratedMarkdown(String value, Path inputDirectory, Path outputDirectory) {
         return value.replace(path(inputDirectory), "<INPUT>").replace(path(outputDirectory), "<OUTPUT>");
     }
 

@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class MikuTextBundleCliJarIT {
-    private static final String INDEX_FILE_NAME = "text-bundle-999-index.md";
+    private static final String INDEX_FILE_NAME = "text-bundle-001.md";
     private static final String FIRST_PART_FILE_NAME = "text-bundle-001.md";
 
     @TempDir
@@ -44,10 +44,10 @@ class MikuTextBundleCliJarIT {
                 "--filename-prefix", "sample-repo-text-bundle");
 
         assertEquals(0, result.exitCode);
-        assertTrue(result.stdout.contains("sample-repo-text-bundle-000-prompt.md"));
+        assertTrue(result.stdout.contains("sample-repo-text-bundle-001.md"));
         assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### README.md"));
-        assertTrue(read(output.resolve("sample-repo-text-bundle-999-index.md"))
-                .contains("sample-repo-text-bundle-001.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md"))
+                .contains("# Text Bundle Index"));
         assertEquals("", result.stderr);
     }
 
@@ -81,7 +81,7 @@ class MikuTextBundleCliJarIT {
 
     private Path jarPath() {
         String buildDirectory = System.getProperty("project.build.directory", "target");
-        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-1.0.1");
+        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-1.1.0");
         return new File(buildDirectory, finalName + ".jar").toPath();
     }
 

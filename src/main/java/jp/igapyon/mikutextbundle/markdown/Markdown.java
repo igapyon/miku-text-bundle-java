@@ -32,8 +32,23 @@ public final class Markdown {
     }
 
     public static String buildPartMarkdown(BundlePart part) {
+        return buildPartMarkdown(part, null, null);
+    }
+
+    public static String buildPartMarkdown(BundlePart part, PromptOptions prompt, IndexOptions index) {
         List<String> lines = new ArrayList<String>();
-        lines.addAll(frontMatter("part", "part: " + part.partNumber));
+        List<String> extraFrontMatter = new ArrayList<String>();
+        extraFrontMatter.add("part: " + part.partNumber);
+        if (prompt != null) {
+            extraFrontMatter.add("prompt: true");
+        }
+        if (index != null) {
+            extraFrontMatter.add("terminal: true");
+        }
+        lines.addAll(frontMatter("part", extraFrontMatter));
+        if (prompt != null) {
+            lines.addAll(buildPromptMarkdownLines(prompt, false));
+        }
         lines.add("# Text Bundle Part " + pad3(part.partNumber));
         lines.add("");
         lines.add("- Part file: `" + part.fileName + "`");
@@ -45,51 +60,70 @@ public final class Markdown {
             lines.addAll(buildChunkMarkdown(chunk));
         }
 
+        if (index != null) {
+            lines.addAll(buildIndexMarkdownLines(index, false));
+        }
+
         return markdown(lines);
     }
 
     public static String buildIndexMarkdown(String inputDirectory, String outputDirectory, List<BundlePart> parts,
             List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles, List<Marker> markers, List<String> warnings) {
+        String terminalFileName = parts.isEmpty() ? "the final part file" : parts.get(parts.size() - 1).fileName;
+        return buildIndexMarkdown(new IndexOptions(inputDirectory, outputDirectory, parts, collectedFiles, skippedFiles,
+                markers, warnings, terminalFileName));
+    }
+
+    public static String buildIndexMarkdown(IndexOptions options) {
+        return markdown(buildIndexMarkdownLines(options, true));
+    }
+
+    private static List<String> buildIndexMarkdownLines(IndexOptions options, boolean includeFrontMatter) {
         List<String> lines = new ArrayList<String>();
-        lines.addAll(frontMatter("index", "terminal: true"));
+        if (includeFrontMatter) {
+            lines.addAll(frontMatter("index", "terminal: true"));
+        }
         lines.add("# Text Bundle Index");
         lines.add("");
         lines.add("## Summary");
         lines.add("");
-        lines.add("- Input directory: `" + inputDirectory + "`");
-        lines.add("- Output directory: `" + outputDirectory + "`");
-        lines.add("- Collected files: " + collectedFiles.size());
-        lines.add("- Skipped files: " + skippedFiles.size());
-        lines.add("- Parts: " + parts.size());
+        lines.add("- Input directory: `" + options.inputDirectory + "`");
+        lines.add("- Output directory: `" + options.outputDirectory + "`");
+        lines.add("- Collected files: " + options.collectedFiles.size());
+        lines.add("- Skipped files: " + options.skippedFiles.size());
+        lines.add("- Parts: " + options.parts.size());
         lines.add("");
-        lines.addAll(agentSkillHandoffSection(agentSkillPaths(collectedFiles)));
+        lines.addAll(agentSkillHandoffSection(agentSkillPaths(options.collectedFiles), options.terminalFileName));
         lines.add("## Parts");
         lines.add("");
-        lines.addAll(partsTable(parts));
+        lines.addAll(partsTable(options.parts));
         lines.add("## Skipped Files");
         lines.add("");
-        lines.addAll(skippedFilesTable(skippedFiles));
+        lines.addAll(skippedFilesTable(options.skippedFiles));
         lines.add("## Warnings");
         lines.add("");
-        lines.addAll(warningList(warnings));
+        lines.addAll(warningList(options.warnings));
         lines.add("## Markers");
         lines.add("");
-        lines.add(markerTable(markers));
-        return markdown(lines);
+        lines.add(markerTable(options.markers));
+        return lines;
     }
 
     public static String buildPromptMarkdown(List<String> partFileNames) {
-        return buildPromptMarkdown("text-bundle-000-prompt.md", partFileNames, "text-bundle-999-index.md");
+        String promptFileName = partFileNames.isEmpty() ? "text-bundle-001.md" : partFileNames.get(0);
+        String indexFileName = partFileNames.isEmpty() ? promptFileName : partFileNames.get(partFileNames.size() - 1);
+        return buildPromptMarkdown(promptFileName, partFileNames, indexFileName);
     }
 
     public static String buildPromptMarkdown(String promptFileName, List<String> partFileNames, String indexFileName) {
+        return join(buildPromptMarkdownLines(new PromptOptions(promptFileName, partFileNames, indexFileName), true), "\n");
+    }
+
+    private static List<String> buildPromptMarkdownLines(PromptOptions options, boolean includeFrontMatter) {
         List<String> lines = new ArrayList<String>();
-        lines.add("---");
-        lines.add("tool: miku-text-bundle");
-        lines.add("version: " + MikuTextBundle.VERSION);
-        lines.add("role: prompt");
-        lines.add("---");
-        lines.add("");
+        if (includeFrontMatter) {
+            lines.addAll(frontMatter("prompt"));
+        }
         lines.add("# Text Bundle Prompt");
         lines.add("");
         lines.add("This is the reading instruction for a Text Bundle that packages a set of files for handoff to generative AI or similar tools.");
@@ -98,19 +132,18 @@ public final class Markdown {
         lines.add("");
         lines.add("After each message, do not analyze or summarize the content yet. Reply only with `Received`.");
         lines.add("");
-        lines.add("Do not start the final response until you receive `" + indexFileName + "`.");
+        lines.add("Do not start the final response until you receive `" + options.indexFileName + "`.");
         lines.add("");
         lines.add("## Reading Order");
         lines.add("");
-        lines.add("1. `" + promptFileName + "`");
-        for (int i = 0; i < partFileNames.size(); i++) {
-            lines.add((i + 2) + ". `" + partFileNames.get(i) + "`");
+        List<String> readingOrderFileNames = readingOrderFileNames(options);
+        for (int i = 0; i < readingOrderFileNames.size(); i++) {
+            lines.add((i + 1) + ". `" + readingOrderFileNames.get(i) + "`");
         }
-        lines.add((partFileNames.size() + 2) + ". `" + indexFileName + "`");
         lines.add("");
         lines.add("## Response File");
         lines.add("");
-        lines.add("If you save the final response after `" + indexFileName + "`, `text-bundle-response.md` is the recommended filename.");
+        lines.add("If you save the final response after `" + options.indexFileName + "`, `text-bundle-response.md` is the recommended filename.");
         lines.add("");
         lines.add("## Output Format");
         lines.add("");
@@ -118,7 +151,19 @@ public final class Markdown {
         lines.add("");
         lines.add("Wrap the entire final Markdown response in a single outer fence using `~~~~`. Use tildes for the outer fence because the Markdown response may contain backtick code fences.");
         lines.add("");
-        return join(lines, "\n");
+        return lines;
+    }
+
+    private static List<String> readingOrderFileNames(PromptOptions options) {
+        List<String> names = new ArrayList<String>();
+        if (options.partFileNames.isEmpty() || !options.partFileNames.get(0).equals(options.promptFileName)) {
+            names.add(options.promptFileName);
+        }
+        names.addAll(options.partFileNames);
+        if (options.partFileNames.isEmpty() || !options.partFileNames.get(options.partFileNames.size() - 1).equals(options.indexFileName)) {
+            names.add(options.indexFileName);
+        }
+        return names;
     }
 
     private static List<String> buildChunkMarkdown(BundleChunk chunk) {
@@ -249,7 +294,7 @@ public final class Markdown {
         return relativePath.matches("skills/[^/]+/SKILL\\.md");
     }
 
-    private static List<String> agentSkillHandoffSection(List<String> skillPaths) {
+    private static List<String> agentSkillHandoffSection(List<String> skillPaths, String terminalFileName) {
         List<String> lines = new ArrayList<String>();
         if (skillPaths.isEmpty()) {
             return lines;
@@ -265,7 +310,7 @@ public final class Markdown {
             lines.add("- " + code(skillPath));
         }
         lines.add("");
-        lines.add("After receiving this `999-index` file, the Text Bundle loading is complete. If the user asks to use this Agent Skill or the target product, prioritize the relevant `SKILL.md` activation rules, operating rules, workflow, and references, and work from the related files in this bundle.");
+        lines.add("After receiving `" + terminalFileName + "`, the Text Bundle loading is complete. If the user asks to use this Agent Skill or the target product, prioritize the relevant `SKILL.md` activation rules, operating rules, workflow, and references, and work from the related files in this bundle.");
         lines.add("");
         lines.add("If higher-priority system, developer, or user instructions apply, follow those instructions first.");
         lines.add("");
@@ -273,8 +318,14 @@ public final class Markdown {
     }
 
     private static List<String> frontMatter(String role, String extra) {
+        List<String> extras = new ArrayList<String>();
+        extras.add(extra);
+        return frontMatter(role, extras);
+    }
+
+    private static List<String> frontMatter(String role, List<String> extras) {
         List<String> lines = frontMatter(role);
-        lines.add(lines.size() - 2, extra);
+        lines.addAll(lines.size() - 2, extras);
         return lines;
     }
 
@@ -341,5 +392,41 @@ public final class Markdown {
             builder.append(values.get(i));
         }
         return builder.toString();
+    }
+
+    public static final class PromptOptions {
+        public final String promptFileName;
+        public final List<String> partFileNames;
+        public final String indexFileName;
+
+        public PromptOptions(String promptFileName, List<String> partFileNames, String indexFileName) {
+            this.promptFileName = promptFileName;
+            this.partFileNames = new ArrayList<String>(partFileNames);
+            this.indexFileName = indexFileName;
+        }
+    }
+
+    public static final class IndexOptions {
+        public final String inputDirectory;
+        public final String outputDirectory;
+        public final List<BundlePart> parts;
+        public final List<CollectedFile> collectedFiles;
+        public final List<SkippedFile> skippedFiles;
+        public final List<Marker> markers;
+        public final List<String> warnings;
+        public final String terminalFileName;
+
+        public IndexOptions(String inputDirectory, String outputDirectory, List<BundlePart> parts,
+                List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles, List<Marker> markers,
+                List<String> warnings, String terminalFileName) {
+            this.inputDirectory = inputDirectory;
+            this.outputDirectory = outputDirectory;
+            this.parts = parts;
+            this.collectedFiles = collectedFiles;
+            this.skippedFiles = skippedFiles;
+            this.markers = markers;
+            this.warnings = warnings;
+            this.terminalFileName = terminalFileName;
+        }
     }
 }

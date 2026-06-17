@@ -8,7 +8,7 @@ This repository follows the miku-soft Java application direction.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
 - Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
-- Current upstream compatibility target: `miku-text-bundle` `v1.0.1`.
+- Current upstream compatibility target: `miku-text-bundle` `v1.1.0`.
 - Primary verification command: `mvn test`.
 - Packaged-jar verification command: `mvn verify`.
 - Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
@@ -26,7 +26,7 @@ This repository follows the miku-soft Java application direction.
 - Input decoding supports explicit `utf-8` and `shift_jis` selection.
 - The default encoding is `utf-8`.
 - Extension rules such as `.java=shift_jis` override the default encoding for exact final extensions.
-- The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in the index Markdown.
+- The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in the final part index section.
 
 ## v0.9.0 Collection Policy
 
@@ -35,7 +35,7 @@ This repository follows the miku-soft Java application direction.
 - File discovery broadly scans regular files under the input directory.
 - Known binary extensions, default excluded directories, root `.gitignore`, and the output directory are filtered before reading candidates.
 - Ignored directory/file counts are part of the core result and verbose diagnostics.
-- The prompt is generated as `text-bundle-000-prompt.md`, bundle parts use `text-bundle-001.md` through `text-bundle-998.md`, and the terminal index is generated as `text-bundle-999-index.md`.
+- Historical v0.9.0 output generated `text-bundle-000-prompt.md`, bundle parts from `text-bundle-001.md` through `text-bundle-998.md`, and terminal `text-bundle-999-index.md`.
 - File ordering in bundle parts follows POSIX relative path UTF-16 code unit order without locale or numeric collation.
 
 ## v1.0.0 Filename Prefix Policy
@@ -43,8 +43,17 @@ This repository follows the miku-soft Java application direction.
 - CLI and core API accept `filenamePrefix` / `--filename-prefix`.
 - The default prefix is `text-bundle`, preserving the v0.9.0 generated file names.
 - Custom prefixes are trimmed and must contain only ASCII letters, digits, `.`, `_`, and `-`.
-- Prompt, part, and index file names all use the normalized prefix.
-- Prompt reading order and the index Parts table must reflect the generated file names.
+- Generated file names use the normalized prefix.
+- Prompt reading order and the index Parts table must reflect the generated part file names.
+
+## v1.1.0 Compact Output Policy
+
+- The standalone prompt and terminal index files are no longer generated.
+- Part files use `text-bundle-001.md` through `text-bundle-999.md`.
+- The first part embeds the prompt section and has `prompt: true` front matter.
+- The final part embeds the index section and has `terminal: true` front matter.
+- A single-part bundle contains both prompt and index sections in `text-bundle-001.md`.
+- `BundleResult.promptPath` points to the first part and `BundleResult.indexPath` points to the final part for API compatibility.
 
 ## Packaging
 
