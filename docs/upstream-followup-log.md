@@ -2,9 +2,29 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-06-23: Follow `miku-text-bundle` v1.3.0
+
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch commit `cca2e8e17900fb75d7c9afd3fde4bbebab4a98a1`.
+- Upstream tags observed after fetch: `v1.1.1.2`, `v1.2.0`, and `v1.3.0`.
+- Main upstream changes:
+  - `--dry-run` was added for collection and part-count estimation without writing output files
+  - Part Markdown now separates the second and later file chunks with horizontal rules
+  - rendered Markdown Part length is checked against the practical `128000` character limit after overhead is included
+  - non-terminal Parts now include an acknowledgement footer that instructs the receiver to reply only with `OK`
+  - package version and CLI `--version` were updated to `1.3.0`
+- Java changes made:
+  - project and CLI version updated to `1.3.0`
+  - CLI parser, core API options, and bundle result now support dry-run
+  - core Part planning now adjusts generated Parts using rendered Markdown length
+  - Markdown generation now emits horizontal rules and acknowledgement footers
+  - README, release notes, maintenance notes, upstream parity gate, and regression tests updated
+- Verification:
+  - upstream Node `npm run build`: passed on 2026-06-23
+  - Java `mvn test`: passed on 2026-06-23
+
 ## 2026-06-18: Follow `miku-text-bundle` v1.1.1
 
-- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch commit `1cb4b9c20d55773722768f231542872cccaacdf9`.
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch commit `1cb4b9c22b3d7ff88c23c5b08474dda88c07cf37`.
 - Upstream tags observed after fetch: `v1.1.0.1`, `v1.1.1`, and `v1.1.1.1`.
 - Main upstream changes:
   - package version updated to `1.1.1`
@@ -13,7 +33,7 @@ This document records concrete upstream checks made while maintaining the Java s
   - old Web UI prompt-pasting recommendation was removed from CLI help
 - Upstream issue observed and fixed:
   - commit `6f9bcbc140b0ce21be4911b8b9ad1acddf1de39c` had `package.json` at `1.1.1` while `src/cli.ts` still exported `CLI_VERSION = "1.1.0"`
-  - commit `1cb4b9c20d55773722768f231542872cccaacdf9` fixes `CLI_VERSION` to `1.1.1`
+  - commit `1cb4b9c22b3d7ff88c23c5b08474dda88c07cf37` fixes `CLI_VERSION` to `1.1.1`
 - Java changes made:
   - project and CLI version updated to `1.1.1`
   - CLI help and help tests aligned with upstream wording

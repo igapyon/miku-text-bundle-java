@@ -18,4 +18,5 @@ public class BundleResult {
     public int ignoredByOutputDirectory;
     public int partsGenerated;
     public List<String> warnings = new ArrayList<String>();
+    public boolean dryRun;
 }

@@ -12,4 +12,5 @@ public class CliOptions {
     public List<String> excludeExtensions;
     public List<String> excludeDirectories;
     public boolean verbose;
+    public boolean dryRun;
 }

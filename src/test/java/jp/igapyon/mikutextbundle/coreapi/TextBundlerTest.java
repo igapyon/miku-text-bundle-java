@@ -239,7 +239,7 @@ class TextBundlerTest {
         assertTrue(prompt.contains("## Reading Order"));
         assertTrue(prompt.contains("1. `text-bundle-001.md`"));
         assertFalse(prompt.contains("2. `text-bundle-001.md`"));
-        assertTrue(prompt.contains("`Received`"));
+        assertTrue(prompt.contains("`OK`"));
         assertFalse(prompt.contains("`END_OF_TEXT_BUNDLE`"));
         assertTrue(prompt.contains("## Response File"));
         assertTrue(prompt.contains("`text-bundle-response.md`"));
@@ -322,6 +322,66 @@ class TextBundlerTest {
         assertTrue(part.contains("- Source characters: 17"));
         assertTrue(part.contains("- Source lines: 2"));
         assertTrue(part.contains("~~~ts\nconst value = 1;\n\n~~~"));
+    }
+
+    @Test
+    void separatesLaterFileChunksWithHorizontalRule() throws Exception {
+        write("a.txt", "a\n");
+        write("b.txt", "b\n");
+
+        BundleResult result = create(bundleOptions(), new Date(1777913940000L));
+
+        String part = read(result.partPaths.get(0));
+        assertTrue(part.contains("~~~\n\n---\n\n### b.txt"));
+    }
+
+    @Test
+    void addsAcknowledgementOnlyFooterToNonTerminalParts() throws Exception {
+        write("a.txt", "a\n");
+        write("b.txt", "b\n");
+        CliOptions options = bundleOptions();
+        options.maxChars = 2;
+
+        BundleResult result = create(options, new Date(1777913940000L));
+
+        assertEquals(2, result.partsGenerated);
+        String firstPart = read(result.partPaths.get(0));
+        String finalPart = read(result.partPaths.get(1));
+        assertTrue(firstPart.contains("## Acknowledgement"));
+        assertTrue(firstPart.contains("Reply only with `OK`."));
+        assertFalse(finalPart.contains("## Acknowledgement"));
+        assertTrue(finalPart.contains("# Text Bundle Index"));
+    }
+
+    @Test
+    void doesNotCreateOutputFilesInDryRunMode() throws Exception {
+        write("README.md", "# README\n");
+        write("src/main.ts", "const value = 1;\n");
+        CliOptions options = bundleOptions();
+        options.dryRun = true;
+
+        BundleResult result = create(options, new Date(1777913940000L));
+
+        assertTrue(result.dryRun);
+        assertEquals(2, result.filesCollected);
+        assertEquals(1, result.partsGenerated);
+        assertEquals(tempDir.resolve("out").resolve("text-bundle-001.md").toAbsolutePath().normalize().toString(),
+                result.partPaths.get(0));
+        assertFalse(Files.exists(tempDir.resolve("out")));
+    }
+
+    @Test
+    void keepsRenderedMarkdownPartsUnderPracticalLimitWhenSmallFileOverheadAccumulates() throws Exception {
+        for (int index = 1; index <= 1800; index++) {
+            write("src/module-" + String.format("%04d", index) + ".ts", "export const value" + index + " = " + index + ";\n");
+        }
+
+        BundleResult result = create(bundleOptions(), new Date(1777913940000L));
+
+        assertTrue(result.partsGenerated > 2);
+        for (String partPath : result.partPaths) {
+            assertTrue(read(partPath).length() <= 128000, partPath);
+        }
     }
 
     @Test

@@ -73,6 +73,7 @@ public final class MikuTextBundleCli {
         options.excludeExtensions = sortedList(state.excludeExtensions);
         options.excludeDirectories = sortedList(state.excludeDirectories);
         options.verbose = state.verbose;
+        options.dryRun = state.dryRun;
         return options;
     }
 
@@ -95,7 +96,9 @@ public final class MikuTextBundleCli {
         out.println("Inputs:");
         out.println("  Reads regular files under --input. Skips known binary extensions, default");
         out.println("  excluded directories such as .git, node_modules, dist, coverage, target,");
-        out.println("  workplace, and files ignored by the input root .gitignore.");
+        out.println("  workplace, and files ignored by the input root .gitignore. The .gitignore");
+        out.println("  matcher is simplified: nested .gitignore files and negation patterns are");
+        out.println("  not supported.");
         out.println();
         out.println("Generated artifacts:");
         out.println("  <prefix>-001.md ... <prefix>-999.md");
@@ -115,7 +118,7 @@ public final class MikuTextBundleCli {
         out.println();
         out.println("Options:");
         out.println("  --filename-prefix <prefix>       File basename prefix. Allowed: A-Z a-z 0-9 . _ -");
-        out.println("  --max-chars <number>             Max approximate characters per part.");
+        out.println("  --max-chars <number>             Max approximate source-content chars per part.");
         out.println("  --max-input-file-bytes <number>  Max bytes read from one input file.");
         out.println("  --encoding utf-8|shift_jis       Default input file encoding.");
         out.println("  --encoding-extension \".java=shift_jis\"");
@@ -124,6 +127,7 @@ public final class MikuTextBundleCli {
         out.println("  --add-exclude-directory \"dir\"");
         out.println("  --remove-exclude-directory \"dir\"");
         out.println("  --verbose                        Print ignored-file count details.");
+        out.println("  --dry-run                        Estimate collection and parts without writing files.");
         out.println();
         out.println("Example:");
         out.println("  miku-text-bundle --input . --output out --filename-prefix my-repo-text-bundle");
@@ -225,6 +229,11 @@ public final class MikuTextBundleCli {
 
         if ("--verbose".equals(arg)) {
             state.verbose = true;
+            return index;
+        }
+
+        if ("--dry-run".equals(arg)) {
+            state.dryRun = true;
             return index;
         }
 
@@ -350,6 +359,7 @@ public final class MikuTextBundleCli {
         private Set<String> excludeExtensions;
         private Set<String> excludeDirectories;
         private boolean verbose;
+        private boolean dryRun;
     }
 
     private static final class VersionRequestedException extends Exception {
