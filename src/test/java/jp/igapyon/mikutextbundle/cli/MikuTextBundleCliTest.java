@@ -31,9 +31,13 @@ class MikuTextBundleCliTest {
         assertFalse(result.out.contains("recommended, not required"));
         assertTrue(result.out.contains("Output and overwrite behavior:"));
         assertTrue(result.out.contains("stdout is progress/completion text"));
+        assertTrue(result.out.contains("the final part index. Invalid usage"));
         assertTrue(result.out.contains("Exit code 0 means success/help/version"));
+        assertTrue(result.out.contains("source-content chars per part"));
+        assertTrue(result.out.contains("nested .gitignore files and negation patterns"));
         assertTrue(result.out.contains("--filename-prefix"));
         assertTrue(result.out.contains("--add-exclude-extension"));
+        assertTrue(result.out.contains("--dry-run"));
         assertEquals("", result.err);
     }
 
@@ -42,14 +46,14 @@ class MikuTextBundleCliTest {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("1.1.1\n", result.out);
+        assertEquals("1.3.0\n", result.out);
         assertEquals("", result.err);
     }
 
     @Test
     void parseArgsParsesRequiredDirectoriesAndOptions() throws Exception {
         CliOptions options = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out",
-                "--max-chars", "1000", "--max-input-file-bytes", "2000", "--verbose" });
+                "--max-chars", "1000", "--max-input-file-bytes", "2000", "--verbose", "--dry-run" });
 
         assertEquals(".", options.inputDirectory);
         assertEquals("out", options.outputDirectory);
@@ -58,6 +62,7 @@ class MikuTextBundleCliTest {
         assertEquals(2000, options.maxInputFileBytes);
         assertEquals(SupportedEncoding.UTF_8, options.encoding.defaultEncoding);
         assertTrue(options.verbose);
+        assertTrue(options.dryRun);
     }
 
     @Test

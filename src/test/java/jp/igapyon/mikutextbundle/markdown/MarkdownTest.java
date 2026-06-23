@@ -19,7 +19,7 @@ class MarkdownTest {
     void buildsStablePartMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.1.1\n" +
+                "version: 1.3.0\n" +
                 "role: part\n" +
                 "part: 1\n" +
                 "---\n" +
@@ -54,10 +54,36 @@ class MarkdownTest {
     }
 
     @Test
+    void separatesLaterFileChunksWithHorizontalRule() {
+        BundlePart part = part();
+        BundleChunk second = new BundleChunk();
+        second.relativePath = "docs/guide/setup.md";
+        second.extension = "md";
+        second.content = "# Setup\n";
+        second.originalCharCount = 8;
+        second.originalLineCount = 2;
+        second.chunkIndex = 1;
+        second.chunkCount = 1;
+        part.chunks.add(second);
+        part.charCount = 25;
+
+        org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part)
+                .contains("~~~\n\n---\n\n### docs/guide/setup.md"));
+    }
+
+    @Test
+    void addsAcknowledgementFooterWhenRequested() {
+        String markdown = Markdown.buildPartMarkdown(part(), null, null, true);
+
+        org.junit.jupiter.api.Assertions.assertTrue(markdown.contains("## Acknowledgement"));
+        org.junit.jupiter.api.Assertions.assertTrue(markdown.contains("Reply only with `OK`."));
+    }
+
+    @Test
     void buildsStableIndexMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.1.1\n" +
+                "version: 1.3.0\n" +
                 "role: index\n" +
                 "terminal: true\n" +
                 "---\n" +
@@ -126,7 +152,7 @@ class MarkdownTest {
     void buildsStablePromptMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.1.1\n" +
+                "version: 1.3.0\n" +
                 "role: prompt\n" +
                 "---\n" +
                 "\n" +
@@ -136,7 +162,7 @@ class MarkdownTest {
                 "\n" +
                 "The Markdown bundle will be sent in multiple messages in the order listed below.\n" +
                 "\n" +
-                "After each message, do not analyze or summarize the content yet. Reply only with `Received`.\n" +
+                "After each non-terminal Part, do not analyze or summarize the content yet. Reply only with `OK`.\n" +
                 "\n" +
                 "Do not start the final response until you receive `text-bundle-002.md`.\n" +
                 "\n" +

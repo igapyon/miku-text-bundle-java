@@ -13,6 +13,8 @@ Project-specific state is recorded in:
 - [upstream-test-mapping.md](upstream-test-mapping.md)
 - [upstream-followup-log.md](upstream-followup-log.md)
 
-The maintenance pass on 2026-06-18 used `igapyon-miku-soft-developer` maintenance mode and followed upstream `miku-text-bundle` devel commit `1cb4b9c20d55773722768f231542872cccaacdf9` for `v1.1.1` CLI help parity and the upstream `CLI_VERSION` fix. The previous compact output follow-up on 2026-06-17 used commit `57f70cd82f442376a02593c72d409fef7d994407` for `v1.1.0`.
+The maintenance pass on 2026-06-23 used `igapyon-miku-soft-developer` maintenance mode and followed upstream `miku-text-bundle` devel commit `cca2e8e17900fb75d7c9afd3fde4bbebab4a98a1` for `v1.3.0` dry-run, rendered Part limit, and acknowledgement footer parity.
+
+The previous maintenance pass on 2026-06-18 used `igapyon-miku-soft-developer` maintenance mode and followed upstream `miku-text-bundle` devel commit `1cb4b9c22b3d7ff88c23c5b08474dda88c07cf37` for `v1.1.1` CLI help parity and the upstream `CLI_VERSION` fix. The previous compact output follow-up on 2026-06-17 used commit `57f70cd82f442376a02593c72d409fef7d994407` for `v1.1.0`.
 
 The installed local skill directory was checked on 2026-06-17. A skill commit could not be recorded because `/Users/igapyon/.codex/skills/igapyon-miku-soft-developer` is not itself a Git checkout.

@@ -32,10 +32,14 @@ public final class Markdown {
     }
 
     public static String buildPartMarkdown(BundlePart part) {
-        return buildPartMarkdown(part, null, null);
+        return buildPartMarkdown(part, null, null, false);
     }
 
     public static String buildPartMarkdown(BundlePart part, PromptOptions prompt, IndexOptions index) {
+        return buildPartMarkdown(part, prompt, index, false);
+    }
+
+    public static String buildPartMarkdown(BundlePart part, PromptOptions prompt, IndexOptions index, boolean acknowledgeOnly) {
         List<String> lines = new ArrayList<String>();
         List<String> extraFrontMatter = new ArrayList<String>();
         extraFrontMatter.add("part: " + part.partNumber);
@@ -56,12 +60,21 @@ public final class Markdown {
         lines.add("- Approx chars: " + part.charCount);
         lines.add("");
 
-        for (BundleChunk chunk : part.chunks) {
+        for (int i = 0; i < part.chunks.size(); i++) {
+            if (i > 0) {
+                lines.add("---");
+                lines.add("");
+            }
+            BundleChunk chunk = part.chunks.get(i);
             lines.addAll(buildChunkMarkdown(chunk));
         }
 
         if (index != null) {
             lines.addAll(buildIndexMarkdownLines(index, false));
+        }
+
+        if (acknowledgeOnly) {
+            lines.addAll(buildAcknowledgementFooterLines());
         }
 
         return markdown(lines);
@@ -130,7 +143,7 @@ public final class Markdown {
         lines.add("");
         lines.add("The Markdown bundle will be sent in multiple messages in the order listed below.");
         lines.add("");
-        lines.add("After each message, do not analyze or summarize the content yet. Reply only with `Received`.");
+        lines.add("After each non-terminal Part, do not analyze or summarize the content yet. Reply only with `OK`.");
         lines.add("");
         lines.add("Do not start the final response until you receive `" + options.indexFileName + "`.");
         lines.add("");
@@ -189,6 +202,15 @@ public final class Markdown {
         lines.add(fence + languageFor(chunk.extension));
         lines.add(chunk.content);
         lines.add(fence);
+        lines.add("");
+        return lines;
+    }
+
+    private static List<String> buildAcknowledgementFooterLines() {
+        List<String> lines = new ArrayList<String>();
+        lines.add("## Acknowledgement");
+        lines.add("");
+        lines.add("After reading this Part, do not analyze or summarize the content yet. Reply only with `OK`.");
         lines.add("");
         return lines;
     }
