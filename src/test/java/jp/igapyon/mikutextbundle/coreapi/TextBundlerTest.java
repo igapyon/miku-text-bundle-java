@@ -371,17 +371,15 @@ class TextBundlerTest {
     }
 
     @Test
-    void keepsRenderedMarkdownPartsUnderPracticalLimitWhenSmallFileOverheadAccumulates() throws Exception {
+    void doesNotImposeRenderedMarkdownCharacterLimitWhenSmallFileOverheadAccumulates() throws Exception {
         for (int index = 1; index <= 1800; index++) {
             write("src/module-" + String.format("%04d", index) + ".ts", "export const value" + index + " = " + index + ";\n");
         }
 
         BundleResult result = create(bundleOptions(), new Date(1777913940000L));
 
-        assertTrue(result.partsGenerated > 2);
-        for (String partPath : result.partPaths) {
-            assertTrue(read(partPath).length() <= 128000, partPath);
-        }
+        assertEquals(1, result.partsGenerated);
+        assertTrue(read(result.partPaths.get(0)).length() > 128000);
     }
 
     @Test

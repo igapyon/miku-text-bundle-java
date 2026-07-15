@@ -8,7 +8,7 @@ This repository follows the miku-soft Java application direction.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
 - Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
-- Current upstream compatibility target: `miku-text-bundle` `v1.3.0`.
+- Current upstream compatibility target: `miku-text-bundle` `v1.4.0`.
 - Primary verification command: `mvn test`.
 - Packaged-jar verification command: `mvn verify`.
 - Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
@@ -62,12 +62,12 @@ This repository follows the miku-soft Java application direction.
 - Dry-run results return planned output paths, counts, warnings, and `BundleResult.dryRun = true`.
 - Part Markdown separates the second and later file chunks with a horizontal rule.
 
-## v1.3.0 Rendered Part Limit Policy
+## v1.3.0 and v1.4.0 Part Sizing Policy
 
-- Generated Markdown Part content is checked after prompt, index, headings, fences, metadata, and acknowledgement overhead are rendered.
-- Parts are adjusted so rendered Markdown stays within the practical `128000` character limit when moving chunks can satisfy that limit.
 - Non-terminal Parts include an acknowledgement footer instructing the receiver to reply only with `OK`.
 - The final terminal Part does not include the acknowledgement footer.
+- `--max-chars` is the approximate source-content limit used for Part planning; prompt, index, headings, fences, front matter, and acknowledgement overhead are not a fixed rendered-character limit.
+- v1.4.0 removes the former fixed `128000` character rendered-Part limit. Choose a smaller `--max-chars` and inspect output when the receiving system has a character limit.
 
 ## Packaging
 

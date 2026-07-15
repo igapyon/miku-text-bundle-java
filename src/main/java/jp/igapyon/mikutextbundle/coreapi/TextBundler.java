@@ -34,7 +34,6 @@ import jp.igapyon.mikutextbundle.pathutils.PathUtils;
 public class TextBundler {
     private static final String DEFAULT_FILENAME_PREFIX = "text-bundle";
     private static final int MAX_BUNDLE_PART_NUMBER = 999;
-    private static final int PRACTICAL_MARKDOWN_PART_CHAR_LIMIT = 128000;
     private static final int EMBEDDED_SECTION_RESERVE_MARGIN_CHARS = 256;
     private static final double EMBEDDED_SECTION_RESERVE_MARGIN_RATIO = 0.1;
     private static final Pattern MARKER_PATTERN = Pattern.compile("\\b(TODO|FIXME|XXX)\\b(?!\\.)(.*)");
@@ -451,14 +450,12 @@ public class TextBundler {
                             result.parts, files, skippedFiles, markers, result.warnings)));
             BundlePartsResult nextResult = buildParts(files, maxChars, filenamePrefix, reserves);
             if (nextResult.parts.size() == result.parts.size()) {
-                return new BundlePartsResult(ensureRenderedPartLimit(outputDirectory, filenamePrefix, inputDirectory,
-                        nextResult.parts, files, skippedFiles, markers, nextResult.warnings), nextResult.warnings);
+                return nextResult;
             }
             result = nextResult;
         }
 
-        return new BundlePartsResult(ensureRenderedPartLimit(outputDirectory, filenamePrefix, inputDirectory, result.parts,
-                files, skippedFiles, markers, result.warnings), result.warnings);
+        return result;
     }
 
     private int estimateEmbeddedPromptChars(List<BundlePart> parts, String filenamePrefix) {
@@ -532,64 +529,6 @@ public class TextBundler {
                         warnings, indexFileName)
                 : null;
         return Markdown.buildPartMarkdown(part, prompt, index, partIndex != parts.size() - 1);
-    }
-
-    private List<BundlePart> ensureRenderedPartLimit(Path outputDirectory, String filenamePrefix, Path inputDirectory,
-            List<BundlePart> parts, List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles, List<Marker> markers,
-            List<String> warnings) {
-        List<BundlePart> adjustedParts = renumberParts(cloneParts(parts), filenamePrefix);
-        int totalChunks = 0;
-        for (BundlePart part : adjustedParts) {
-            totalChunks += part.chunks.size();
-        }
-        int remainingMoves = Math.max(1, totalChunks + MAX_BUNDLE_PART_NUMBER);
-
-        while (remainingMoves > 0) {
-            int overflowIndex = -1;
-            for (int i = 0; i < adjustedParts.size(); i++) {
-                String markdown = buildRenderedPartMarkdown(outputDirectory, filenamePrefix, inputDirectory, adjustedParts,
-                        collectedFiles, skippedFiles, markers, warnings, i);
-                if (markdown.length() > PRACTICAL_MARKDOWN_PART_CHAR_LIMIT) {
-                    overflowIndex = i;
-                    break;
-                }
-            }
-            if (overflowIndex == -1) {
-                return adjustedParts;
-            }
-
-            BundlePart overflowPart = adjustedParts.get(overflowIndex);
-            boolean isLastPart = overflowIndex == adjustedParts.size() - 1;
-            if (overflowPart.chunks.isEmpty()) {
-                throw new IllegalArgumentException("Generated Markdown for " + overflowPart.fileName + " exceeds "
-                        + PRACTICAL_MARKDOWN_PART_CHAR_LIMIT + " characters even without file chunks.");
-            }
-            if (overflowPart.chunks.size() == 1 && !isLastPart) {
-                throw new IllegalArgumentException("Generated Markdown for " + overflowPart.fileName + " exceeds "
-                        + PRACTICAL_MARKDOWN_PART_CHAR_LIMIT + " characters with a single file chunk.");
-            }
-            if (overflowPart.chunks.size() == 1 && isLastPart) {
-                adjustedParts.add(createBundlePart(filenamePrefix, adjustedParts.size() + 1, new ArrayList<BundleChunk>(), 0));
-                adjustedParts = renumberParts(adjustedParts, filenamePrefix);
-                remainingMoves--;
-                continue;
-            }
-
-            BundleChunk movedChunk = overflowPart.chunks.remove(overflowPart.chunks.size() - 1);
-            if (isLastPart) {
-                List<BundleChunk> movedChunks = new ArrayList<BundleChunk>();
-                movedChunks.add(movedChunk);
-                adjustedParts.add(createBundlePart(filenamePrefix, adjustedParts.size() + 1, movedChunks,
-                        chunksCharCount(movedChunks)));
-            } else {
-                adjustedParts.get(overflowIndex + 1).chunks.add(0, movedChunk);
-            }
-            adjustedParts = renumberParts(adjustedParts, filenamePrefix);
-            remainingMoves--;
-        }
-
-        throw new IllegalArgumentException("Unable to keep generated Markdown parts under "
-                + PRACTICAL_MARKDOWN_PART_CHAR_LIMIT + " characters.");
     }
 
     private List<String> partFileNames(List<BundlePart> parts) {

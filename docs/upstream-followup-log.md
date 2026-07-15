@@ -2,6 +2,19 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-07-15: Follow `miku-text-bundle` v1.4.0
+
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch and tag `v1.4.0` commit `855172dbbba10ba099f7dd8c809ca40cee7087da`.
+- Main upstream change: removed the fixed `128000` character limit applied after Markdown Part rendering. `--max-chars` remains an approximate source-content limit; rendered Part content can exceed it because of Markdown and embedded-section overhead.
+- Java changes made:
+  - updated the project and CLI version to `1.4.0`
+  - removed post-render fixed-limit splitting from `TextBundler`
+  - added the over-limit rendered-Part regression case and updated upstream parity, packaging, CLI, and Markdown-version tests
+  - updated README, release notes, development notes, and mapping documents
+- Verification:
+  - upstream Node `npm run build`: passed on 2026-07-15
+  - Java `mvn verify`: passed on 2026-07-15
+
 ## 2026-06-23: Follow `miku-text-bundle` v1.3.0
 
 - Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch commit `cca2e8e17900fb75d7c9afd3fde4bbebab4a98a1`.
