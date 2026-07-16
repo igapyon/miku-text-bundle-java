@@ -3,11 +3,16 @@ package jp.igapyon.mikutextbundle.coreapi;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.igapyon.mikutextbundle.model.BundleMode;
+
 public class BundleResult {
+    public BundleMode mode;
     public String outputDirectory;
     public String indexPath;
     public String promptPath;
     public List<String> partPaths = new ArrayList<String>();
+    public List<String> knowledgeSourcePaths = new ArrayList<String>();
+    public String managementIndexPath;
     public int filesCollected;
     public int filesSkipped;
     public int directoriesIgnored;

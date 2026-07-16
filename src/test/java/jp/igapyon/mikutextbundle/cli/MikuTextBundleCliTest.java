@@ -3,6 +3,7 @@ package jp.igapyon.mikutextbundle.cli;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -12,9 +13,22 @@ import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 import jp.igapyon.mikutextbundle.model.CliOptions;
+import jp.igapyon.mikutextbundle.model.BundleMode;
 import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 
 class MikuTextBundleCliTest {
+    @Test
+    void parsesModesAndModeSpecificPrefixes() throws Exception {
+        CliOptions defaults = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out" });
+        CliOptions knowledge = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out", "--mode", "knowledge-source" });
+        CliOptions custom = MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out", "--mode", "knowledge-source", "--filename-prefix", "docs" });
+        assertEquals(BundleMode.HANDOFF, defaults.mode);
+        assertEquals("text-bundle", defaults.filenamePrefix);
+        assertEquals(BundleMode.KNOWLEDGE_SOURCE, knowledge.mode);
+        assertEquals("knowledge", knowledge.filenamePrefix);
+        assertEquals("docs", custom.filenamePrefix);
+        assertThrows(IllegalArgumentException.class, () -> MikuTextBundleCli.parseArgs(new String[] { "--input", ".", "--output", "out", "--mode", "other" }));
+    }
     @Test
     void helpReturnsUsage() {
         CliResult result = run("--help");
@@ -46,7 +60,7 @@ class MikuTextBundleCliTest {
         CliResult result = run("--version");
 
         assertEquals(0, result.exitCode);
-        assertEquals("1.4.0\n", result.out);
+        assertEquals("1.5.0\n", result.out);
         assertEquals("", result.err);
     }
 

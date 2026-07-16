@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import jp.igapyon.mikutextbundle.model.CliOptions;
+import jp.igapyon.mikutextbundle.model.BundleMode;
 
 class UpstreamParityTest {
     private static final String INDEX_FILE_NAME = "text-bundle-001.md";
@@ -30,7 +31,7 @@ class UpstreamParityTest {
     @Test
     void productFixtureMatchesUpstreamMarkdownOutputs() throws Exception {
         Path upstreamMain = findUpstreamMain();
-        assumeTrue(upstreamMain != null, "local upstream 1.4.0 dist/main.js is unavailable");
+        assumeTrue(upstreamMain != null, "local upstream 1.5.0 dist/main.js is unavailable");
         assumeTrue(isNodeAvailable(), "node executable is unavailable");
 
         Path javaInput = tempDir.resolve("java-input");
@@ -48,7 +49,7 @@ class UpstreamParityTest {
 
         new TextBundler().createTextBundle(options, new Date(FIXED_NOW_MILLIS),
                 new PrintStream(new ByteArrayOutputStream()));
-        runUpstream(upstreamMain, upstreamInput, upstreamOutput);
+        runUpstream(upstreamMain, upstreamInput, upstreamOutput, false);
 
         assertEquals(normalizeGeneratedMarkdown(read(upstreamOutput.resolve(INDEX_FILE_NAME)), upstreamInput, upstreamOutput),
                 normalizeGeneratedMarkdown(read(javaOutput.resolve(INDEX_FILE_NAME)), javaInput, javaOutput));
@@ -56,6 +57,29 @@ class UpstreamParityTest {
                 normalizeGeneratedMarkdown(read(javaOutput.resolve(FIRST_PART_FILE_NAME)), javaInput, javaOutput));
         assertEquals(normalizeGeneratedMarkdown(read(upstreamOutput.resolve(PROMPT_FILE_NAME)), upstreamInput, upstreamOutput),
                 normalizeGeneratedMarkdown(read(javaOutput.resolve(PROMPT_FILE_NAME)), javaInput, javaOutput));
+    }
+
+    @Test
+    void knowledgeSourceFixtureMatchesUpstreamMarkdownOutputs() throws Exception {
+        Path upstreamMain = findUpstreamMain();
+        assumeTrue(upstreamMain != null, "local upstream 1.5.0 dist/main.js is unavailable");
+        assumeTrue(isNodeAvailable(), "node executable is unavailable");
+        Path javaInput = tempDir.resolve("java-knowledge-input");
+        Path upstreamInput = tempDir.resolve("upstream-knowledge-input");
+        Path javaOutput = tempDir.resolve("java-knowledge-output");
+        Path upstreamOutput = tempDir.resolve("upstream-knowledge-output");
+        copyResourceDirectory("fixtures/product-repo", javaInput);
+        copyResourceDirectory("fixtures/product-repo", upstreamInput);
+        CliOptions options = new CliOptions();
+        options.inputDirectory = javaInput.toString();
+        options.outputDirectory = javaOutput.toString();
+        options.mode = BundleMode.KNOWLEDGE_SOURCE;
+        new TextBundler().createTextBundle(options, new Date(FIXED_NOW_MILLIS), new PrintStream(new ByteArrayOutputStream()));
+        runUpstream(upstreamMain, upstreamInput, upstreamOutput, true);
+        assertEquals(normalizeGeneratedMarkdown(read(upstreamOutput.resolve("knowledge-001.md")), upstreamInput, upstreamOutput),
+                normalizeGeneratedMarkdown(read(javaOutput.resolve("knowledge-001.md")), javaInput, javaOutput));
+        assertEquals(normalizeGeneratedMarkdown(read(upstreamOutput.resolve("knowledge-index.md")), upstreamInput, upstreamOutput),
+                normalizeGeneratedMarkdown(read(javaOutput.resolve("knowledge-index.md")), javaInput, javaOutput));
     }
 
     private Path findUpstreamMain() throws IOException {
@@ -68,7 +92,7 @@ class UpstreamParityTest {
         candidates.add(java.nio.file.Paths.get("workplace/miku-text-bundle-devel"));
         for (Path candidate : candidates) {
             Path main = candidate.resolve("dist/main.js").toAbsolutePath().normalize();
-            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "1.4.0")) {
+            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "1.5.0")) {
                 return main;
             }
         }
@@ -94,12 +118,13 @@ class UpstreamParityTest {
         }
     }
 
-    private void runUpstream(Path upstreamMain, Path inputDirectory, Path outputDirectory)
+    private void runUpstream(Path upstreamMain, Path inputDirectory, Path outputDirectory, boolean knowledgeSource)
             throws IOException, InterruptedException {
         String script = "import { createTextBundle } from " + quote(upstreamMain.toUri().toString()) + ";"
                 + "createTextBundle({"
                 + "inputDirectory:" + quote(inputDirectory.toString()) + ","
                 + "outputDirectory:" + quote(outputDirectory.toString()) + ","
+                + (knowledgeSource ? "mode:'knowledge-source'," : "")
                 + "maxChars:120000,"
                 + "maxInputFileBytes:1000000,"
                 + "verbose:false"

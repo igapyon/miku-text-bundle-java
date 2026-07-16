@@ -1,6 +1,6 @@
 # miku-text-bundle-java
 
-`miku-text-bundle-java` is a Java CLI that collects text files from a repository and writes them as split Markdown bundle files for generative AI handoff.
+`miku-text-bundle-java` is a Java CLI that collects repository text files into split Markdown for AI handoff or neutral Knowledge source preparation.
 
 It is useful when a repository is too large to paste into an AI chat in one message. The tool creates one or more compact bundle part files; the first part embeds the prompt and the final part embeds the index.
 
@@ -8,7 +8,7 @@ This repository is a Java straight-conversion version of the upstream TypeScript
 
 - https://github.com/igapyon/miku-text-bundle
 
-See [Release Notes: v1.4.0](docs/release-notes-v1.4.0.md) for the latest upstream-following changes.
+See [Release Notes: v1.5.0](docs/release-notes-v1.5.0.md) for the latest upstream-following changes.
 
 ## Requirements
 
@@ -25,13 +25,13 @@ mvn package
 The executable jar is created under `target/`.
 
 ```text
-target/miku-text-bundle-java-1.4.0.jar
+target/miku-text-bundle-java-1.5.0.jar
 ```
 
 ## Quick Start
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle
 ```
 
 Both `--input` and `--output` are required.
@@ -39,14 +39,15 @@ Both `--input` and `--output` are required.
 ## CLI Usage
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input <dir> --output <dir> [options]
+java -jar target/miku-text-bundle-java-1.5.0.jar --input <dir> --output <dir> [options]
 ```
 
 Options:
 
 | Option | Description | Default |
 | --- | --- | --- |
-| `--filename-prefix <prefix>` | Set the generated Markdown file basename prefix. Allowed characters are ASCII letters, digits, `.`, `_`, and `-`. | `text-bundle` |
+| `--mode handoff\|knowledge-source` | Select handoff output or neutral Knowledge source output. | `handoff` |
+| `--filename-prefix <prefix>` | Set the generated Markdown file basename prefix. Allowed characters are ASCII letters, digits, `.`, `_`, and `-`. | `text-bundle` (handoff), `knowledge` (knowledge-source) |
 | `--max-chars <number>` | Approximate maximum source-content characters per bundle part. Oversized files may be split. | `120000` |
 | `--max-input-file-bytes <number>` | Skip input files larger than this byte size. | `1000000` |
 | `--encoding utf-8\|shift_jis` | Set the default input file encoding. | `utf-8` |
@@ -70,6 +71,12 @@ Each run generates:
 | --- | --- |
 | `text-bundle-001.md`, `text-bundle-002.md`, ... | Collected source and text content split into compact Markdown parts. The first part includes the prompt, and the final part includes the index. |
 
+With `--mode knowledge-source`, the default outputs are `knowledge-001.md`, later numbered files as needed, and `knowledge-index.md`. Only numbered files are registration candidates. The management index records configuration, source mapping, skipped files, warnings, markers, and stale numbered outputs; it is not a registration candidate. Source bodies are preserved without handoff instructions or diagnostics. Format conversion, service registration, and target-specific size limits remain the caller's responsibility.
+
+```sh
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/knowledge --mode knowledge-source
+```
+
 The CLI prints generated file paths and a completion summary:
 
 ```text
@@ -80,7 +87,7 @@ completed: 1 part(s), 2 file(s) collected, 0 file(s) skipped, 1 directories igno
 Use `--filename-prefix` when writing multiple Text Bundles into the same workflow:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --filename-prefix my-repo-text-bundle
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --filename-prefix my-repo-text-bundle
 ```
 
 This generates files such as `my-repo-text-bundle-001.md`, `my-repo-text-bundle-002.md`, and later numbered part files when needed.
@@ -105,7 +112,7 @@ The default input encoding is UTF-8. Use `--encoding shift_jis` to read collecte
 Per-extension rules override the default encoding:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --encoding utf-8 --encoding-extension ".java=shift_jis,.properties=shift_jis"
 ```
 
 Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-detect encodings. Files that cannot be decoded with the selected encoding, or files detected as binary, are skipped and recorded in the final part's index section.
@@ -113,15 +120,15 @@ Supported input encodings are `utf-8` and `shift_jis`. The tool does not auto-de
 Use `--add-exclude-extension` and `--remove-exclude-extension` to adjust extension-based filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --add-exclude-extension ".wasm,.bin"
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --remove-exclude-extension ".pdf"
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --add-exclude-extension ".wasm,.bin"
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --remove-exclude-extension ".pdf"
 ```
 
 Use `--add-exclude-directory` and `--remove-exclude-directory` to adjust directory filtering:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --add-exclude-directory "generated"
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --remove-exclude-directory "dist"
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --add-exclude-directory "generated"
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --remove-exclude-directory "dist"
 ```
 
 ## Examples
@@ -129,31 +136,31 @@ java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bun
 Bundle the current repository:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle
 ```
 
 Bundle a repository and write to a known directory:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input /path/to/repo --output /path/to/out
+java -jar target/miku-text-bundle-java-1.5.0.jar --input /path/to/repo --output /path/to/out
 ```
 
 Show diagnostics:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --verbose
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --verbose
 ```
 
 Use smaller bundle parts:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --max-chars 60000
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --max-chars 60000
 ```
 
 Preview collection and estimated part count without writing output files:
 
 ```sh
-java -jar target/miku-text-bundle-java-1.4.0.jar --input . --output out/text-bundle --dry-run
+java -jar target/miku-text-bundle-java-1.5.0.jar --input . --output out/text-bundle --dry-run
 ```
 
 ## Development

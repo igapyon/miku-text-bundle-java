@@ -13,6 +13,7 @@ import jp.igapyon.mikutextbundle.coreapi.TextBundler;
 import jp.igapyon.mikutextbundle.core.MikuTextBundle;
 import jp.igapyon.mikutextbundle.discovery.FileDiscovery;
 import jp.igapyon.mikutextbundle.model.EncodingOptions;
+import jp.igapyon.mikutextbundle.model.BundleMode;
 import jp.igapyon.mikutextbundle.model.CliOptions;
 import jp.igapyon.mikutextbundle.model.SupportedEncoding;
 import jp.igapyon.mikutextbundle.pathutils.PathUtils;
@@ -22,6 +23,7 @@ import jp.igapyon.mikutextbundle.pathutils.PathUtils;
  */
 public final class MikuTextBundleCli {
     private static final String DEFAULT_FILENAME_PREFIX = "text-bundle";
+    private static final String DEFAULT_KNOWLEDGE_FILENAME_PREFIX = "knowledge";
 
     private MikuTextBundleCli() {
     }
@@ -37,9 +39,12 @@ public final class MikuTextBundleCli {
             ByteArrayOutputStreamBridge generatedOutput = new ByteArrayOutputStreamBridge();
             BundleResult result = new TextBundler().createTextBundle(options, new java.util.Date(), generatedOutput.printStream);
             out.print(generatedOutput.text());
-            out.println("completed: " + result.partsGenerated + " part(s), " + result.filesCollected
+            String artifactLabel = result.mode == BundleMode.KNOWLEDGE_SOURCE ? " knowledge file(s), 1 management index" : " part(s)";
+            String prefix = result.dryRun ? "dry-run" : "completed";
+            String suffix = result.dryRun ? ", no files written" : "";
+            out.println(prefix + ": " + result.partsGenerated + artifactLabel + ", " + result.filesCollected
                     + " file(s) collected, " + result.filesSkipped + " file(s) skipped, "
-                    + result.directoriesIgnored + " directories ignored, " + result.filesIgnored + " file(s) ignored");
+                    + result.directoriesIgnored + " directories ignored, " + result.filesIgnored + " file(s) ignored" + suffix);
             return 0;
         } catch (HelpRequestedException ex) {
             printHelp(out);
@@ -66,7 +71,9 @@ public final class MikuTextBundleCli {
         CliOptions options = new CliOptions();
         options.inputDirectory = state.inputDirectory;
         options.outputDirectory = state.outputDirectory;
-        options.filenamePrefix = state.filenamePrefix;
+        options.mode = state.mode;
+        options.filenamePrefix = state.filenamePrefixExplicit ? state.filenamePrefix
+                : state.mode == BundleMode.KNOWLEDGE_SOURCE ? DEFAULT_KNOWLEDGE_FILENAME_PREFIX : DEFAULT_FILENAME_PREFIX;
         options.maxChars = state.maxChars;
         options.maxInputFileBytes = state.maxInputFileBytes;
         options.encoding = state.encoding;
@@ -84,12 +91,13 @@ public final class MikuTextBundleCli {
         out.println("  miku-text-bundle --version");
         out.println();
         out.println("Description:");
-        out.println("  Scan local text-like files under --input and generate split Markdown bundle");
-        out.println("  files under --output for generative AI handoff. No network access is used.");
+        out.println("  Scan local text-like files under --input and generate split Markdown files");
+        out.println("  for AI handoff or neutral Knowledge source preparation. No network is used.");
         out.println();
         out.println("Default behavior:");
         out.println("  Required: --input <dir>, --output <dir>");
-        out.println("  Defaults: --filename-prefix text-bundle, --max-chars 120000,");
+        out.println("  Defaults: --mode handoff, --filename-prefix text-bundle for handoff or");
+        out.println("  knowledge for knowledge-source, --max-chars 120000,");
         out.println("  --max-input-file-bytes 1000000, --encoding utf-8.");
         out.println("  Input paths are ordered by POSIX relative path using UTF-16 code units.");
         out.println();
@@ -101,22 +109,27 @@ public final class MikuTextBundleCli {
         out.println("  not supported.");
         out.println();
         out.println("Generated artifacts:");
-        out.println("  <prefix>-001.md ... <prefix>-999.md");
+        out.println("  handoff:          <prefix>-001.md ... <prefix>-999.md");
+        out.println("  knowledge-source: <prefix>-001.md ... <prefix>-999.md, <prefix>-index.md");
         out.println("  These files are generated artifacts and may be regenerated.");
         out.println("  The first part includes the prompt instructions.");
         out.println("  The final part includes the terminal index.");
+        out.println("  These two embedded sections apply only to handoff mode.");
+        out.println("  Knowledge source diagnostics are kept in the separate management index.");
         out.println();
         out.println("Output and overwrite behavior:");
         out.println("  Creates --output when missing. Existing generated files with the same names");
         out.println("  are overwritten. Terminal stdout is progress/completion text, not a stable");
-        out.println("  machine-readable API. The Markdown files are the stable handoff artifacts.");
+        out.println("  machine-readable API. The Markdown files are the stable artifacts.");
         out.println();
         out.println("Diagnostics and exit codes:");
         out.println("  Skipped readable-candidate files and split warnings are recorded in");
         out.println("  the final part index. Invalid usage or processing errors are printed to");
-        out.println("  stderr. Exit code 0 means success/help/version; exit code 1 means failure.");
+        out.println("  stderr. Knowledge diagnostics use the management index.");
+        out.println("  Exit code 0 means success/help/version; exit code 1 means failure.");
         out.println();
         out.println("Options:");
+        out.println("  --mode handoff|knowledge-source  Output mode. Default: handoff.");
         out.println("  --filename-prefix <prefix>       File basename prefix. Allowed: A-Z a-z 0-9 . _ -");
         out.println("  --max-chars <number>             Max approximate source-content chars per part.");
         out.println("  --max-input-file-bytes <number>  Max bytes read from one input file.");
@@ -131,12 +144,14 @@ public final class MikuTextBundleCli {
         out.println();
         out.println("Example:");
         out.println("  miku-text-bundle --input . --output out --filename-prefix my-repo-text-bundle");
+        out.println("  miku-text-bundle --input . --output out --mode knowledge-source");
         out.println();
     }
 
     private static ParseState createParseState() {
         ParseState state = new ParseState();
         state.filenamePrefix = DEFAULT_FILENAME_PREFIX;
+        state.mode = BundleMode.HANDOFF;
         state.maxChars = 120000;
         state.maxInputFileBytes = 1000000;
         state.encoding = new EncodingOptions();
@@ -169,6 +184,12 @@ public final class MikuTextBundleCli {
 
         if ("--filename-prefix".equals(arg)) {
             state.filenamePrefix = parseFilenamePrefix(readRequiredOptionValue(argv, index, "--filename-prefix"));
+            state.filenamePrefixExplicit = true;
+            return index + 1;
+        }
+
+        if ("--mode".equals(arg)) {
+            state.mode = BundleMode.parse(readRequiredOptionValue(argv, index, "--mode"));
             return index + 1;
         }
 
@@ -353,6 +374,8 @@ public final class MikuTextBundleCli {
         private String inputDirectory;
         private String outputDirectory;
         private String filenamePrefix;
+        private boolean filenamePrefixExplicit;
+        private BundleMode mode;
         private int maxChars;
         private int maxInputFileBytes;
         private EncodingOptions encoding;

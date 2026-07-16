@@ -17,7 +17,7 @@ class PomMetadataTest {
 
         assertEquals("jp.igapyon", text(document, "groupId"));
         assertEquals("miku-text-bundle-java", text(document, "artifactId"));
-        assertEquals("1.4.0", text(document, "version"));
+        assertEquals("1.5.0", text(document, "version"));
         assertEquals("jar", text(document, "packaging"));
         assertEquals("Apache License, Version 2.0", text(document, "name", 1));
         assertEquals("1.8", text(document, "maven.compiler.source"));

@@ -22,6 +22,7 @@ java classes:
   jp.igapyon.mikutextbundle.model.IgnoreStats
   jp.igapyon.mikutextbundle.model.BundleChunk
   jp.igapyon.mikutextbundle.model.BundlePart
+  jp.igapyon.mikutextbundle.model.BundleMode
   jp.igapyon.mikutextbundle.coreapi.BundleResult
   jp.igapyon.mikutextbundle.model.EncodingOptions
   jp.igapyon.mikutextbundle.model.SupportedEncoding
@@ -29,7 +30,8 @@ java classes:
 notes:
   - POJO classes use public fields during the initial straight conversion.
   - SupportedEncoding and EncodingOptions map the upstream explicit input encoding contract.
-  - CliOptions maps the v1.0.0 required `--input` / `--output` contract, `--filename-prefix`, and exclude-list controls.
+  - CliOptions maps the required `--input` / `--output` contract, `--mode`, `--filename-prefix`, and exclude-list controls.
+  - BundleMode, BundleChunk provenance fields, and BundleResult Knowledge source paths map the v1.5.0 additive contract.
   - IgnoreStats and BundleResult map the v1.0.0 ignored-directory / ignored-file counters.
 ```
 
@@ -54,6 +56,7 @@ java classes:
 
 notes:
   - Core API owns file discovery, skip handling, splitting, Markdown file generation, and result summaries.
+  - v1.5.0 keeps handoff reserve/render behavior separate from Knowledge source files and their management index.
 ```
 
 ```text
@@ -77,7 +80,7 @@ java classes:
   jp.igapyon.mikutextbundle.markdown.Markdown
 
 notes:
-  - Initial conversion covers part, index, and prompt Markdown generation, including v1.0.0 custom generated file prefixes.
+  - Covers handoff part/index/prompt Markdown and v1.5.0 neutral Knowledge source and management-index rendering.
 ```
 
 ```text

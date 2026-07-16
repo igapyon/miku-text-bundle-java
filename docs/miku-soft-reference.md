@@ -13,6 +13,8 @@ Project-specific state is recorded in:
 - [upstream-test-mapping.md](upstream-test-mapping.md)
 - [upstream-followup-log.md](upstream-followup-log.md)
 
+The maintenance pass on 2026-07-16 used `igapyon-miku-soft-developer` maintenance mode and followed upstream `miku-text-bundle` devel/tag `v1.5.0` commit `b5bd095c7a0fec0396d288826a0963794264740c` for Knowledge source mode.
+
 The maintenance pass on 2026-07-15 used `igapyon-miku-soft-developer` maintenance mode and followed upstream `miku-text-bundle` devel commit `855172dbbba10ba099f7dd8c809ca40cee7087da` for `v1.4.0` removal of the fixed rendered-Part limit.
 
 The previous maintenance pass on 2026-06-23 followed upstream `miku-text-bundle` devel commit `cca2e8e17900fb75d7c9afd3fde4bbebab4a98a1` for `v1.3.0` dry-run, rendered Part limit, and acknowledgement footer parity.

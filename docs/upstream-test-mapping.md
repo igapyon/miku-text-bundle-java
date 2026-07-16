@@ -24,6 +24,7 @@ notes:
   - CLI filename prefix coverage maps upstream `--filename-prefix` parser validation.
   - CLI encoding option coverage maps upstream `--encoding` and `--encoding-extension` parser tests.
   - Exclude extension and directory list operation tests map upstream `--add-exclude-*` and `--remove-exclude-*`.
+  - v1.5.0 mode parsing, validation, mode-specific prefixes, and help text are covered.
   - Removed positional, `--input-directory`, `--output-directory`, `--include`, `--exclude`, `-h`, and `-v` behavior is covered as rejection cases.
   - Java uses `SupportedEncoding` enum values instead of TypeScript string union literals.
 ```
@@ -45,6 +46,7 @@ focused regression:
 
 notes:
   - Java test calls the CLI run boundary directly instead of launching a packaged jar.
+  - Knowledge source generation and dry-run completion wording are covered.
   - Packaged jar process behavior is covered separately by the Failsafe integration test.
 ```
 
@@ -110,9 +112,9 @@ notes:
   - Extension-specific and default Shift_JIS decoding cases map the upstream explicit input encoding behavior.
   - v1.0.0 broad recursive discovery, default binary extension exclusion, directory exclusion, output-directory exclusion, ignored counters, terminal index, filename prefix, and UTF-16 code unit ordering are covered.
   - Java uses JDK Charset decoding instead of upstream iconv-lite.
-  - UpstreamParityTest compares generated Markdown with a local upstream `dist/main.js` only when the checkout is version `1.4.0`.
+  - UpstreamParityTest compares handoff and Knowledge source Markdown with a local upstream `dist/main.js` only when the checkout is version `1.5.0`.
   - A local upstream root can be supplied with `-DmikuTextBundle.upstreamRoot=/path/to/miku-text-bundle`.
-  - The parity test is skipped when Node or a local upstream 1.4.0 build is unavailable.
+  - The parity test is skipped when Node or a local upstream 1.5.0 build is unavailable.
 ```
 
 ```text

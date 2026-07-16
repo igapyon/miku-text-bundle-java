@@ -9,10 +9,12 @@ import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,6 +24,7 @@ import jp.igapyon.mikutextbundle.discovery.FileDiscovery;
 import jp.igapyon.mikutextbundle.markdown.Markdown;
 import jp.igapyon.mikutextbundle.match.PatternMatcher;
 import jp.igapyon.mikutextbundle.model.BundleChunk;
+import jp.igapyon.mikutextbundle.model.BundleMode;
 import jp.igapyon.mikutextbundle.model.BundlePart;
 import jp.igapyon.mikutextbundle.model.CliOptions;
 import jp.igapyon.mikutextbundle.model.CollectedFile;
@@ -33,6 +36,7 @@ import jp.igapyon.mikutextbundle.pathutils.PathUtils;
 
 public class TextBundler {
     private static final String DEFAULT_FILENAME_PREFIX = "text-bundle";
+    private static final String DEFAULT_KNOWLEDGE_FILENAME_PREFIX = "knowledge";
     private static final int MAX_BUNDLE_PART_NUMBER = 999;
     private static final int EMBEDDED_SECTION_RESERVE_MARGIN_CHARS = 256;
     private static final double EMBEDDED_SECTION_RESERVE_MARGIN_RATIO = 0.1;
@@ -43,13 +47,15 @@ public class TextBundler {
     }
 
     public BundleResult createTextBundle(CliOptions options, Date now, PrintStream out) throws IOException {
+        BundleMode mode = options.mode == null ? BundleMode.HANDOFF : options.mode;
         Path inputPath = Paths.get(options.inputDirectory).toAbsolutePath().normalize();
         if (!Files.isDirectory(inputPath)) {
             throw new IllegalArgumentException("Input directory does not exist: " + inputPath);
         }
 
         Path outputDirectory = chooseOutputDirectory(options.outputDirectory);
-        String filenamePrefix = normalizeFilenamePrefix(options.filenamePrefix);
+        String defaultPrefix = mode == BundleMode.KNOWLEDGE_SOURCE ? DEFAULT_KNOWLEDGE_FILENAME_PREFIX : DEFAULT_FILENAME_PREFIX;
+        String filenamePrefix = normalizeFilenamePrefix(options.filenamePrefix == null ? defaultPrefix : options.filenamePrefix);
         if (!options.dryRun) {
             Files.createDirectories(outputDirectory);
         }
@@ -57,13 +63,26 @@ public class TextBundler {
         List<String> gitignorePatterns = readRootGitignore(inputPath);
         CollectedFilesResult collected = collectFiles(inputPath, outputDirectory, options, gitignorePatterns);
         List<Marker> markers = collectMarkers(collected.files);
-        BundlePartsResult partsResult = buildPartsWithEmbeddedReserves(collected.files, options.maxChars, filenamePrefix,
-                inputPath, outputDirectory, collected.skipped, markers);
+        BundlePartsResult partsResult = mode == BundleMode.KNOWLEDGE_SOURCE
+                ? buildParts(collected.files, options.maxChars, filenamePrefix)
+                : buildPartsWithEmbeddedReserves(collected.files, options.maxChars, filenamePrefix,
+                        inputPath, outputDirectory, collected.skipped, markers);
 
-        BundleMarkdownPaths paths = options.dryRun
-                ? plannedBundleMarkdownPaths(outputDirectory, filenamePrefix, partsResult.parts)
-                : writeBundleMarkdownFiles(outputDirectory, filenamePrefix, inputPath, partsResult.parts, collected.files,
-                        collected.skipped, markers, partsResult.warnings);
+        BundleMarkdownPaths paths;
+        if (mode == BundleMode.KNOWLEDGE_SOURCE) {
+            paths = options.dryRun
+                    ? plannedKnowledgeMarkdownPaths(outputDirectory, filenamePrefix, partsResult.parts)
+                    : writeKnowledgeMarkdownFiles(outputDirectory, filenamePrefix, inputPath, partsResult.parts,
+                            collected.files, collected.skipped, markers, partsResult.warnings, options);
+        } else {
+            paths = options.dryRun ? plannedBundleMarkdownPaths(outputDirectory, filenamePrefix, partsResult.parts)
+                    : writeBundleMarkdownFiles(outputDirectory, filenamePrefix, inputPath, partsResult.parts, collected.files,
+                            collected.skipped, markers, partsResult.warnings);
+        }
+        List<String> resultWarnings = new ArrayList<String>(partsResult.warnings);
+        for (String stale : paths.staleOutputCandidates) {
+            resultWarnings.add("Stale generated output remains: `" + stale + "`.");
+        }
 
         if (options.verbose) {
             out.println("collected=" + collected.files.size());
@@ -81,13 +100,21 @@ public class TextBundler {
             for (String partPath : paths.partPaths) {
                 out.println("generated: " + partPath);
             }
+            if (mode == BundleMode.KNOWLEDGE_SOURCE) {
+                out.println("generated: " + paths.indexPath);
+            }
         }
 
         BundleResult result = new BundleResult();
+        result.mode = mode;
         result.outputDirectory = outputDirectory.toString();
         result.indexPath = paths.indexPath;
         result.promptPath = paths.promptPath;
         result.partPaths.addAll(paths.partPaths);
+        if (mode == BundleMode.KNOWLEDGE_SOURCE) {
+            result.knowledgeSourcePaths.addAll(paths.partPaths);
+            result.managementIndexPath = paths.indexPath;
+        }
         result.filesCollected = collected.files.size();
         result.filesSkipped = collected.skipped.size();
         result.directoriesIgnored = collected.ignored.directories;
@@ -97,7 +124,7 @@ public class TextBundler {
         result.ignoredByGitignore = collected.ignored.byGitignore;
         result.ignoredByOutputDirectory = collected.ignored.byOutputDirectory;
         result.partsGenerated = partsResult.parts.size();
-        result.warnings.addAll(partsResult.warnings);
+        result.warnings.addAll(resultWarnings);
         result.dryRun = options.dryRun;
         return result;
     }
@@ -338,11 +365,16 @@ public class TextBundler {
         chunk.originalLineCount = file.lineCount;
         chunk.chunkIndex = 1;
         chunk.chunkCount = 1;
+        chunk.sourceStartLine = file.lineCount == 0 ? 0 : 1;
+        chunk.sourceEndLine = file.lineCount;
+        chunk.sourceStartChar = 0;
+        chunk.sourceEndChar = file.content.length();
         return chunk;
     }
 
     private List<BundleChunk> createSplitFileChunks(CollectedFile file, List<String> chunkContents) {
         List<BundleChunk> chunks = new ArrayList<BundleChunk>();
+        int sourceStartChar = 0;
         for (int i = 0; i < chunkContents.size(); i++) {
             BundleChunk chunk = new BundleChunk();
             chunk.relativePath = file.relativePath;
@@ -352,10 +384,24 @@ public class TextBundler {
             chunk.originalLineCount = file.lineCount;
             chunk.chunkIndex = i + 1;
             chunk.chunkCount = chunkContents.size();
+            int sourceEndChar = sourceStartChar + chunk.content.length();
+            chunk.sourceStartLine = sourceLineAtOffset(file.content, sourceStartChar);
+            chunk.sourceEndLine = sourceLineAtOffset(file.content, Math.max(sourceStartChar, sourceEndChar - 1));
+            chunk.sourceStartChar = sourceStartChar;
+            chunk.sourceEndChar = sourceEndChar;
             chunk.splitReason = "This file exceeded the size limit and was split.";
             chunks.add(chunk);
+            sourceStartChar = sourceEndChar;
         }
         return chunks;
+    }
+
+    private int sourceLineAtOffset(String content, int offset) {
+        if (content.length() == 0) return 0;
+        int bounded = Math.max(0, Math.min(offset, content.length() - 1));
+        int line = 1;
+        for (int i = 0; i < bounded; i++) if (content.charAt(i) == '\n') line++;
+        return line;
     }
 
     private BundlePart createBundlePart(String filenamePrefix, int partNumber, List<BundleChunk> chunks, int charCount) {
@@ -513,6 +559,91 @@ public class TextBundler {
         return new BundleMarkdownPaths(indexPath.toString(), promptPath.toString(), partPaths);
     }
 
+    private BundleMarkdownPaths writeKnowledgeMarkdownFiles(Path outputDirectory, String filenamePrefix, Path inputDirectory,
+            List<BundlePart> parts, List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles,
+            List<Marker> markers, List<String> warnings, CliOptions options) throws IOException {
+        List<String> stale = staleKnowledgeOutputs(outputDirectory, filenamePrefix, parts);
+        List<String> partPaths = new ArrayList<String>();
+        for (BundlePart part : parts) {
+            Path path = outputDirectory.resolve(part.fileName);
+            Files.write(path, Markdown.buildKnowledgeSourceMarkdown(part).getBytes(StandardCharsets.UTF_8));
+            partPaths.add(path.toString());
+        }
+        String indexFileName = filenamePrefix + "-index.md";
+        Path indexPath = outputDirectory.resolve(indexFileName);
+        Markdown.KnowledgeIndexOptions index = knowledgeIndexOptions(indexFileName, inputDirectory, outputDirectory,
+                filenamePrefix, options, parts, collectedFiles, skippedFiles, markers, warnings, stale);
+        Files.write(indexPath, Markdown.buildKnowledgeIndexMarkdown(index).getBytes(StandardCharsets.UTF_8));
+        return new BundleMarkdownPaths(indexPath.toString(), partPaths.get(0), partPaths, stale);
+    }
+
+    private BundleMarkdownPaths plannedKnowledgeMarkdownPaths(Path outputDirectory, String filenamePrefix,
+            List<BundlePart> parts) throws IOException {
+        List<String> partPaths = new ArrayList<String>();
+        for (BundlePart part : parts) partPaths.add(outputDirectory.resolve(part.fileName).toString());
+        return new BundleMarkdownPaths(outputDirectory.resolve(filenamePrefix + "-index.md").toString(),
+                partPaths.get(0), partPaths, staleKnowledgeOutputs(outputDirectory, filenamePrefix, parts));
+    }
+
+    private List<String> staleKnowledgeOutputs(Path outputDirectory, String filenamePrefix, List<BundlePart> parts)
+            throws IOException {
+        List<String> result = new ArrayList<String>();
+        if (!Files.isDirectory(outputDirectory)) return result;
+        List<String> planned = new ArrayList<String>();
+        for (BundlePart part : parts) planned.add(part.fileName);
+        Pattern pattern = Pattern.compile("^" + Pattern.quote(filenamePrefix) + "-\\d{3}\\.md$");
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDirectory)) {
+            for (Path path : stream) {
+                String name = path.getFileName().toString();
+                if (pattern.matcher(name).matches() && !planned.contains(name)) result.add(name);
+            }
+        }
+        Collections.sort(result);
+        return result;
+    }
+
+    private Markdown.KnowledgeIndexOptions knowledgeIndexOptions(String indexFileName, Path inputDirectory,
+            Path outputDirectory, String filenamePrefix, CliOptions options, List<BundlePart> parts,
+            List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles, List<Marker> markers,
+            List<String> warnings, List<String> stale) {
+        Markdown.KnowledgeIndexOptions index = new Markdown.KnowledgeIndexOptions();
+        index.managementIndexFileName = indexFileName;
+        index.configuration.add(new String[] { "mode", "knowledge-source" });
+        index.configuration.add(new String[] { "input", displayPathFromCurrentDirectory(inputDirectory) });
+        index.configuration.add(new String[] { "output", displayPathFromCurrentDirectory(outputDirectory) });
+        index.configuration.add(new String[] { "filename-prefix", filenamePrefix });
+        index.configuration.add(new String[] { "max-chars", String.valueOf(options.maxChars) });
+        index.configuration.add(new String[] { "max-input-file-bytes", String.valueOf(options.maxInputFileBytes) });
+        index.configuration.add(new String[] { "encoding", options.encoding.defaultEncoding.optionValue });
+        index.configuration.add(new String[] { "encoding-extension", sortedEncodingExtensions(options) });
+        index.configuration.add(new String[] { "exclude-extensions", sortedValues(options.excludeExtensions) });
+        index.configuration.add(new String[] { "exclude-directories", sortedValues(options.excludeDirectories) });
+        index.parts.addAll(parts); index.collectedFiles.addAll(collectedFiles); index.skippedFiles.addAll(skippedFiles);
+        index.markers.addAll(markers); index.warnings.addAll(warnings); index.staleOutputCandidates.addAll(stale);
+        return index;
+    }
+
+    private String sortedEncodingExtensions(CliOptions options) {
+        List<String> values = new ArrayList<String>();
+        for (java.util.Map.Entry<String, SupportedEncoding> entry : options.encoding.extensions.entrySet())
+            values.add(entry.getKey() + "=" + entry.getValue().optionValue);
+        Collections.sort(values);
+        return joinValues(values);
+    }
+
+    private String sortedValues(List<String> source) {
+        if (source == null) return "";
+        List<String> values = new ArrayList<String>(source);
+        Collections.sort(values);
+        return joinValues(values);
+    }
+
+    private String joinValues(List<String> values) {
+        StringBuilder result = new StringBuilder();
+        for (String value : values) { if (result.length() > 0) result.append(", "); result.append(value); }
+        return result.toString();
+    }
+
     private String buildRenderedPartMarkdown(Path outputDirectory, String filenamePrefix, Path inputDirectory,
             List<BundlePart> parts, List<CollectedFile> collectedFiles, List<SkippedFile> skippedFiles, List<Marker> markers,
             List<String> warnings, int partIndex) {
@@ -623,11 +754,17 @@ public class TextBundler {
         private final String indexPath;
         private final String promptPath;
         private final List<String> partPaths;
+        private final List<String> staleOutputCandidates;
 
         private BundleMarkdownPaths(String indexPath, String promptPath, List<String> partPaths) {
+            this(indexPath, promptPath, partPaths, new ArrayList<String>());
+        }
+
+        private BundleMarkdownPaths(String indexPath, String promptPath, List<String> partPaths, List<String> staleOutputCandidates) {
             this.indexPath = indexPath;
             this.promptPath = promptPath;
             this.partPaths = partPaths;
+            this.staleOutputCandidates = staleOutputCandidates;
         }
     }
 }
