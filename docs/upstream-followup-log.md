@@ -2,6 +2,19 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-07-16: Follow `miku-text-bundle` v1.5.0
+
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch and tag `v1.5.0` commit `b5bd095c7a0fec0396d288826a0963794264740c`.
+- Main upstream change: added `--mode knowledge-source` for neutral numbered Markdown and a separate management index while preserving default handoff output.
+- Java follow-up:
+  - added mode, provenance, result, CLI, renderer, stale-output, and management-index contracts
+  - updated version, README, release notes, mappings, and development notes
+  - added focused Knowledge source tests and handoff/Knowledge source upstream parity coverage
+- Verification:
+  - upstream Node `npm run build`: passed on 2026-07-16 (68 tests)
+  - Java focused tests: passed
+  - Node-vs-Java handoff and Knowledge source parity: passed
+
 ## 2026-07-15: Follow `miku-text-bundle` v1.4.0
 
 - Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch and tag `v1.4.0` commit `855172dbbba10ba099f7dd8c809ca40cee7087da`.

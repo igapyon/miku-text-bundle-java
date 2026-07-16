@@ -8,7 +8,7 @@ This repository follows the miku-soft Java application direction.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
 - Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
-- Current upstream compatibility target: `miku-text-bundle` `v1.4.0`.
+- Current upstream compatibility target: `miku-text-bundle` `v1.5.0`.
 - Primary verification command: `mvn test`.
 - Packaged-jar verification command: `mvn verify`.
 - Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
@@ -68,6 +68,14 @@ This repository follows the miku-soft Java application direction.
 - The final terminal Part does not include the acknowledgement footer.
 - `--max-chars` is the approximate source-content limit used for Part planning; prompt, index, headings, fences, front matter, and acknowledgement overhead are not a fixed rendered-character limit.
 - v1.4.0 removes the former fixed `128000` character rendered-Part limit. Choose a smaller `--max-chars` and inspect output when the receiving system has a character limit.
+
+## v1.5.0 Knowledge Source Policy
+
+- `--mode handoff|knowledge-source` selects the output contract; omitted mode remains `handoff`.
+- Knowledge source mode generates neutral numbered Markdown plus a separate management index.
+- Numbered files preserve source bodies and provenance without prompt, acknowledgement, Agent Skill handoff, warnings, skips, or markers.
+- The management index is diagnostic metadata and is not a registration candidate.
+- Existing stale numbered outputs are reported but not deleted.
 
 ## Packaging
 

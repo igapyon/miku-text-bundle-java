@@ -206,6 +206,97 @@ public final class Markdown {
         return lines;
     }
 
+    public static String buildKnowledgeSourceMarkdown(BundlePart part) {
+        List<String> lines = new ArrayList<String>();
+        lines.add("# Knowledge Source " + pad3(part.partNumber));
+        lines.add("");
+        for (int i = 0; i < part.chunks.size(); i++) {
+            BundleChunk chunk = part.chunks.get(i);
+            if (i > 0) {
+                lines.add("---");
+                lines.add("");
+            }
+            lines.add("## Source: " + chunk.relativePath);
+            lines.add("");
+            lines.add("- Source path: " + code(chunk.relativePath));
+            if (chunk.chunkCount > 1) {
+                lines.add("- Source chunk: " + chunk.chunkIndex + " / " + chunk.chunkCount);
+                lines.add("- Source lines: " + chunk.sourceStartLine + "-" + chunk.sourceEndLine);
+            }
+            lines.add("");
+            if ("md".equals(chunk.extension)) {
+                lines.add(chunk.content);
+                lines.add("");
+            } else {
+                String fence = fenceFor(chunk.content);
+                lines.add(fence + languageFor(chunk.extension));
+                lines.add(chunk.content);
+                lines.add(fence);
+                lines.add("");
+            }
+        }
+        return join(lines, "\n") + "\n";
+    }
+
+    private static String markdownFirstRun(List<String> lines) {
+        return join(lines, "\n").replaceFirst("\\n{3,}", "\n\n") + "\n";
+    }
+
+    public static String buildKnowledgeIndexMarkdown(KnowledgeIndexOptions options) {
+        List<String> lines = new ArrayList<String>();
+        lines.add("# Knowledge Bundle Index");
+        lines.add("");
+        lines.add("## Configuration");
+        lines.add("");
+        List<List<String>> configurationRows = new ArrayList<List<String>>();
+        for (String[] entry : options.configuration) {
+            List<String> row = new ArrayList<String>();
+            row.add(code(entry[0]));
+            row.add(escapeTable(entry[1]));
+            configurationRows.add(row);
+        }
+        lines.addAll(table(new String[] { "Option", "Effective value" }, new String[] { "---", "---" }, configurationRows));
+        lines.add("## Summary");
+        lines.add("");
+        lines.add("- Collected files: " + options.collectedFiles.size());
+        lines.add("- Skipped files: " + options.skippedFiles.size());
+        lines.add("- Knowledge files: " + options.parts.size());
+        lines.add("");
+        lines.add("## Generated Files");
+        lines.add("");
+        List<List<String>> generatedRows = new ArrayList<List<String>>();
+        for (BundlePart part : options.parts) {
+            generatedRows.add(row(code(part.fileName), "knowledge-source", String.valueOf(part.chunks.size()), String.valueOf(part.charCount)));
+        }
+        generatedRows.add(row(code(options.managementIndexFileName), "management-index", "-", "-"));
+        lines.addAll(table(new String[] { "File", "Role", "Chunks", "Approx chars" }, new String[] { "---", "---", "---:", "---:" }, generatedRows));
+        lines.add("## Source Mapping");
+        lines.add("");
+        List<List<String>> mappingRows = new ArrayList<List<String>>();
+        for (BundlePart part : options.parts) {
+            for (BundleChunk chunk : part.chunks) {
+                mappingRows.add(row(code(chunk.relativePath), code(part.fileName), chunk.chunkIndex + " / " + chunk.chunkCount,
+                        chunk.sourceStartLine + "-" + chunk.sourceEndLine, chunk.sourceStartChar + "-" + chunk.sourceEndChar,
+                        String.valueOf(chunk.originalCharCount), String.valueOf(chunk.content.length())));
+            }
+        }
+        lines.addAll(table(new String[] { "Source", "Generated file", "Chunk", "Source lines", "UTF-16 chars", "Source chars", "Chunk chars" },
+                new String[] { "---", "---", "---:", "---:", "---:", "---:", "---:" }, mappingRows));
+        lines.add("## Skipped Files"); lines.add(""); lines.addAll(skippedFilesTable(options.skippedFiles));
+        lines.add("## Warnings"); lines.add(""); lines.addAll(warningList(options.warnings));
+        lines.add("## Markers"); lines.add(""); lines.add(markerTable(options.markers));
+        lines.add("## Stale Output Candidates"); lines.add("");
+        if (options.staleOutputCandidates.isEmpty()) { lines.add("- None"); lines.add(""); }
+        else { for (String value : options.staleOutputCandidates) lines.add("- " + code(value)); lines.add(""); }
+        return markdownFirstRun(lines);
+    }
+
+    private static List<String> row(String... values) {
+        List<String> row = new ArrayList<String>();
+        for (String value : values) row.add(value);
+        return row;
+    }
+
     private static List<String> buildAcknowledgementFooterLines() {
         List<String> lines = new ArrayList<String>();
         lines.add("## Acknowledgement");
@@ -426,6 +517,17 @@ public final class Markdown {
             this.partFileNames = new ArrayList<String>(partFileNames);
             this.indexFileName = indexFileName;
         }
+    }
+
+    public static final class KnowledgeIndexOptions {
+        public String managementIndexFileName;
+        public List<String[]> configuration = new ArrayList<String[]>();
+        public List<BundlePart> parts = new ArrayList<BundlePart>();
+        public List<CollectedFile> collectedFiles = new ArrayList<CollectedFile>();
+        public List<SkippedFile> skippedFiles = new ArrayList<SkippedFile>();
+        public List<Marker> markers = new ArrayList<Marker>();
+        public List<String> warnings = new ArrayList<String>();
+        public List<String> staleOutputCandidates = new ArrayList<String>();
     }
 
     public static final class IndexOptions {

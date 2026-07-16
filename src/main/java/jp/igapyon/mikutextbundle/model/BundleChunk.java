@@ -8,5 +8,9 @@ public class BundleChunk {
     public int originalLineCount;
     public int chunkIndex;
     public int chunkCount;
+    public int sourceStartLine;
+    public int sourceEndLine;
+    public int sourceStartChar;
+    public int sourceEndChar;
     public String splitReason;
 }

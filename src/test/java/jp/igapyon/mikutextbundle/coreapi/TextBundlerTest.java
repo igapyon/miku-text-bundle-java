@@ -20,10 +20,66 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import jp.igapyon.mikutextbundle.model.CliOptions;
+import jp.igapyon.mikutextbundle.model.BundleMode;
 
 class TextBundlerTest {
     @TempDir
     Path tempDir;
+
+    @Test
+    void generatesNeutralKnowledgeSourcesAndManagementIndex() throws Exception {
+        write("docs/guide.md", "# Product\n\nFact A.\n");
+        write("src/main.ts", "// TODO implement\nconst value = 1;\n");
+        CliOptions options = bundleOptions();
+        options.mode = BundleMode.KNOWLEDGE_SOURCE;
+
+        BundleResult result = create(options, new Date(0L));
+
+        assertEquals(BundleMode.KNOWLEDGE_SOURCE, result.mode);
+        assertEquals(result.partPaths, result.knowledgeSourcePaths);
+        assertTrue(result.partPaths.get(0).endsWith("knowledge-001.md"));
+        assertTrue(result.managementIndexPath.endsWith("knowledge-index.md"));
+        String knowledge = new String(Files.readAllBytes(java.nio.file.Paths.get(result.partPaths.get(0))), StandardCharsets.UTF_8);
+        String index = new String(Files.readAllBytes(java.nio.file.Paths.get(result.managementIndexPath)), StandardCharsets.UTF_8);
+        assertTrue(knowledge.contains("- Source path: `docs/guide.md`"));
+        assertTrue(knowledge.contains("# Product\n\nFact A."));
+        assertFalse(knowledge.contains("Text Bundle Prompt"));
+        assertFalse(knowledge.contains("## Markers"));
+        assertTrue(index.contains("# Knowledge Bundle Index"));
+        assertTrue(index.contains("## Source Mapping"));
+        assertTrue(index.contains("TODO implement"));
+    }
+
+    @Test
+    void tracksSplitKnowledgeSourceRangesAndStaleOutput() throws Exception {
+        write("large.md", "aaaa\nbbbb\ncccc\n");
+        write("out/knowledge-004.md", "stale\n");
+        CliOptions options = bundleOptions();
+        options.mode = BundleMode.KNOWLEDGE_SOURCE;
+        options.maxChars = 6;
+
+        BundleResult result = create(options, new Date(0L));
+        String second = new String(Files.readAllBytes(java.nio.file.Paths.get(result.partPaths.get(1))), StandardCharsets.UTF_8);
+        String index = new String(Files.readAllBytes(java.nio.file.Paths.get(result.managementIndexPath)), StandardCharsets.UTF_8);
+        assertTrue(second.contains("- Source chunk: 2 / 3"));
+        assertTrue(second.contains("- Source lines: 2-2"));
+        assertTrue(index.contains("| `large.md` | `knowledge-002.md` | 2 / 3 | 2-2 | 5-10 | 15 | 5 |"));
+        assertTrue(result.warnings.contains("Stale generated output remains: `knowledge-004.md`."));
+        assertTrue(Files.exists(tempDir.resolve("out/knowledge-004.md")));
+    }
+
+    @Test
+    void plansKnowledgeSourcesWithoutWritingDuringDryRun() throws Exception {
+        write("README.md", "# README\n");
+        CliOptions options = bundleOptions();
+        options.mode = BundleMode.KNOWLEDGE_SOURCE;
+        options.dryRun = true;
+
+        BundleResult result = create(options, new Date(0L));
+        assertTrue(result.partPaths.get(0).endsWith("knowledge-001.md"));
+        assertTrue(result.managementIndexPath.endsWith("knowledge-index.md"));
+        assertFalse(Files.exists(tempDir.resolve("out")));
+    }
 
     @Test
     void choosesExplicitOutputDirectory() {
