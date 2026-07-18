@@ -19,7 +19,7 @@ class MarkdownTest {
     void buildsStablePartMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.5.0\n" +
+                "version: 1.6.0\n" +
                 "role: part\n" +
                 "part: 1\n" +
                 "---\n" +
@@ -30,18 +30,119 @@ class MarkdownTest {
                 "- Files/chunks: 1\n" +
                 "- Approx chars: 17\n" +
                 "\n" +
-                "### src/main.ts\n" +
+                "### FILE: src/main.ts\n" +
                 "\n" +
-                "- Characters: 17\n" +
-                "- Source characters: 17\n" +
-                "- Source lines: 2\n" +
+                "--- BEGIN FILE: src/main.ts ---\n" +
+                "\n" +
+                "Source code block\n" +
+                "Language: TypeScript\n" +
                 "\n" +
                 "~~~ts\n" +
                 "const value = 1;\n" +
-                "\n" +
                 "~~~\n" +
+                "\n" +
+                "--- END FILE: src/main.ts ---\n" +
                 "\n",
                 Markdown.buildPartMarkdown(part()));
+    }
+
+    @Test
+    void rendersJavaScriptWithExplicitAgentReadableFileBlockMetadata() {
+        BundlePart part = part();
+        BundleChunk chunk = part.chunks.get(0);
+        chunk.relativePath = "src/example.js";
+        chunk.extension = "js";
+        chunk.content = "function hello() {\n  return \"hello\";\n}\n";
+
+        String markdown = Markdown.buildPartMarkdown(part);
+        org.junit.jupiter.api.Assertions.assertTrue(markdown.contains("### FILE: src/example.js\n\n" +
+                "--- BEGIN FILE: src/example.js ---\n\n" +
+                "Source code block\nLanguage: JavaScript\n\n" +
+                "~~~js\nfunction hello() {\n  return \"hello\";\n}\n~~~\n\n" +
+                "--- END FILE: src/example.js ---"));
+    }
+
+    @Test
+    void mapsCommonSourceAndStructuredTextExtensionsToExplicitLanguages() {
+        assertLanguage("src/app.py", "py", "Source code block", "Python", "python");
+        assertLanguage("src/main.go", "go", "Source code block", "Go", "go");
+        assertLanguage("config/settings.yaml", "yaml", "Source text block", "YAML", "yaml");
+        assertLanguage("web/index.html", "html", "Source code block", "HTML", "html");
+        assertLanguage("Dockerfile", "", "Source code block", "Dockerfile", "dockerfile");
+    }
+
+    @Test
+    void usesNeutralMetadataForUnknownExtensions() {
+        BundlePart part = part();
+        part.chunks.get(0).relativePath = "data/example.custom-format";
+        part.chunks.get(0).extension = "custom-format";
+
+        org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part)
+                .contains("Source content block\nLanguage: Unknown\n\n~~~\n"));
+    }
+
+    @Test
+    void preservesRepeatedBlankLinesInsideFileBodiesInBothModes() {
+        BundlePart part = part();
+        String content = "first\n\n\nsecond\n";
+        part.chunks.get(0).content = content;
+
+        org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part).contains(content));
+        org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildKnowledgeSourceMarkdown(part).contains(content));
+    }
+
+    @Test
+    void escapesControlCharactersInFileBlockDisplayPaths() {
+        BundlePart part = part();
+        part.chunks.get(0).relativePath = "docs/line\nbreak\tname.md";
+        part.chunks.get(0).extension = "md";
+        String markdown = Markdown.buildPartMarkdown(part);
+        org.junit.jupiter.api.Assertions.assertTrue(markdown.contains(
+                "### FILE: docs/line\\nbreak\\tname.md\n\n--- BEGIN FILE: docs/line\\nbreak\\tname.md ---"));
+
+        part.chunks.get(0).relativePath = "docs/literal\\n.md";
+        org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part)
+                .contains("### FILE: docs/literal\\\\n.md"));
+    }
+
+    @Test
+    void keepsControlCharactersPipesAndBackticksInsideIndexPathCells() {
+        BundlePart part = part();
+        part.chunks.get(0).relativePath = "docs/line\nbreak|`name`.md";
+        String index = Markdown.buildIndexMarkdown("/repo", "/out", Arrays.asList(part),
+                collectedFiles(), skippedFiles(), markers(), new ArrayList<String>());
+
+        org.junit.jupiter.api.Assertions.assertTrue(index.contains("``docs/line\\nbreak\\|`name`.md``"));
+        org.junit.jupiter.api.Assertions.assertFalse(index.contains("docs/line\nbreak"));
+    }
+
+    @Test
+    void buildsStableKnowledgeSourceFileBlockMarkdown() {
+        BundlePart part = part();
+        part.fileName = "knowledge-001.md";
+        BundleChunk chunk = part.chunks.get(0);
+        chunk.relativePath = "docs/guide.md";
+        chunk.extension = "md";
+        chunk.content = "# Guide\n\nDetails.\n";
+
+        assertEquals("# Knowledge Source 001\n" +
+                "\n" +
+                "### FILE: docs/guide.md\n" +
+                "\n" +
+                "--- BEGIN FILE: docs/guide.md ---\n" +
+                "\n" +
+                "Source text block\n" +
+                "Language: Markdown\n" +
+                "\n" +
+                "~~~md\n" +
+                "# Guide\n" +
+                "\n" +
+                "Details.\n" +
+                "~~~\n" +
+                "\n" +
+                "--- END FILE: docs/guide.md ---\n" +
+                "\n",
+                Markdown.buildKnowledgeSourceMarkdown(part));
     }
 
     @Test
@@ -50,11 +151,11 @@ class MarkdownTest {
         part.chunks.get(0).content = "~~~md\ninside\n~~~\n";
 
         org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part)
-                .contains("~~~~ts\n~~~md\ninside\n~~~\n\n~~~~"));
+                .contains("~~~~ts\n~~~md\ninside\n~~~\n~~~~"));
     }
 
     @Test
-    void separatesLaterFileChunksWithHorizontalRule() {
+    void wrapsEveryFileChunkInExplicitFileBoundaryMarkers() {
         BundlePart part = part();
         BundleChunk second = new BundleChunk();
         second.relativePath = "docs/guide/setup.md";
@@ -68,7 +169,8 @@ class MarkdownTest {
         part.charCount = 25;
 
         org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part)
-                .contains("~~~\n\n---\n\n### docs/guide/setup.md"));
+                .contains("--- END FILE: src/main.ts ---\n\n### FILE: docs/guide/setup.md\n\n" +
+                        "--- BEGIN FILE: docs/guide/setup.md ---"));
     }
 
     @Test
@@ -83,7 +185,7 @@ class MarkdownTest {
     void buildsStableIndexMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.5.0\n" +
+                "version: 1.6.0\n" +
                 "role: index\n" +
                 "terminal: true\n" +
                 "---\n" +
@@ -152,7 +254,7 @@ class MarkdownTest {
     void buildsStablePromptMarkdown() {
         assertEquals("---\n" +
                 "tool: miku-text-bundle\n" +
-                "version: 1.5.0\n" +
+                "version: 1.6.0\n" +
                 "role: prompt\n" +
                 "---\n" +
                 "\n" +
@@ -199,6 +301,15 @@ class MarkdownTest {
         part.charCount = 17;
         part.chunks.add(chunk);
         return part;
+    }
+
+    private void assertLanguage(String relativePath, String extension, String blockLabel, String displayName,
+            String fenceLanguage) {
+        BundlePart part = part();
+        part.chunks.get(0).relativePath = relativePath;
+        part.chunks.get(0).extension = extension;
+        org.junit.jupiter.api.Assertions.assertTrue(Markdown.buildPartMarkdown(part)
+                .contains(blockLabel + "\nLanguage: " + displayName + "\n\n~~~" + fenceLanguage));
     }
 
     private List<CollectedFile> collectedFiles() {

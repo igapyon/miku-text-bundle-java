@@ -31,7 +31,7 @@ class UpstreamParityTest {
     @Test
     void productFixtureMatchesUpstreamMarkdownOutputs() throws Exception {
         Path upstreamMain = findUpstreamMain();
-        assumeTrue(upstreamMain != null, "local upstream 1.5.0 dist/main.js is unavailable");
+        assumeTrue(upstreamMain != null, "local upstream 1.6.0 dist/main.js is unavailable");
         assumeTrue(isNodeAvailable(), "node executable is unavailable");
 
         Path javaInput = tempDir.resolve("java-input");
@@ -62,7 +62,7 @@ class UpstreamParityTest {
     @Test
     void knowledgeSourceFixtureMatchesUpstreamMarkdownOutputs() throws Exception {
         Path upstreamMain = findUpstreamMain();
-        assumeTrue(upstreamMain != null, "local upstream 1.5.0 dist/main.js is unavailable");
+        assumeTrue(upstreamMain != null, "local upstream 1.6.0 dist/main.js is unavailable");
         assumeTrue(isNodeAvailable(), "node executable is unavailable");
         Path javaInput = tempDir.resolve("java-knowledge-input");
         Path upstreamInput = tempDir.resolve("upstream-knowledge-input");
@@ -92,7 +92,7 @@ class UpstreamParityTest {
         candidates.add(java.nio.file.Paths.get("workplace/miku-text-bundle-devel"));
         for (Path candidate : candidates) {
             Path main = candidate.resolve("dist/main.js").toAbsolutePath().normalize();
-            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "1.5.0")) {
+            if (Files.isRegularFile(main) && isUpstreamVersion(candidate, "1.6.0")) {
                 return main;
             }
         }

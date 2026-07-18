@@ -41,7 +41,10 @@ class TextBundlerTest {
         assertTrue(result.managementIndexPath.endsWith("knowledge-index.md"));
         String knowledge = new String(Files.readAllBytes(java.nio.file.Paths.get(result.partPaths.get(0))), StandardCharsets.UTF_8);
         String index = new String(Files.readAllBytes(java.nio.file.Paths.get(result.managementIndexPath)), StandardCharsets.UTF_8);
-        assertTrue(knowledge.contains("- Source path: `docs/guide.md`"));
+        assertTrue(knowledge.contains("### FILE: docs/guide.md\n\n--- BEGIN FILE: docs/guide.md ---"));
+        assertTrue(knowledge.contains("Source text block\nLanguage: Markdown"));
+        assertTrue(knowledge.contains("~~~md\n# Product"));
+        assertTrue(knowledge.contains("--- END FILE: docs/guide.md ---"));
         assertTrue(knowledge.contains("# Product\n\nFact A."));
         assertFalse(knowledge.contains("Text Bundle Prompt"));
         assertFalse(knowledge.contains("## Markers"));
@@ -61,8 +64,8 @@ class TextBundlerTest {
         BundleResult result = create(options, new Date(0L));
         String second = new String(Files.readAllBytes(java.nio.file.Paths.get(result.partPaths.get(1))), StandardCharsets.UTF_8);
         String index = new String(Files.readAllBytes(java.nio.file.Paths.get(result.managementIndexPath)), StandardCharsets.UTF_8);
-        assertTrue(second.contains("- Source chunk: 2 / 3"));
-        assertTrue(second.contains("- Source lines: 2-2"));
+        assertTrue(second.contains("Chunk: 2 / 3"));
+        assertTrue(second.contains("Source lines: 2-2"));
         assertTrue(index.contains("| `large.md` | `knowledge-002.md` | 2 / 3 | 2-2 | 5-10 | 15 | 5 |"));
         assertTrue(result.warnings.contains("Stale generated output remains: `knowledge-004.md`."));
         assertTrue(Files.exists(tempDir.resolve("out/knowledge-004.md")));
@@ -124,7 +127,10 @@ class TextBundlerTest {
         assertFalse(index.contains("Output directory: `" + tempDir.resolve("out").toAbsolutePath().normalize().toString() + "`"));
         assertFalse(index.contains(".git/secret.ts"));
         assertFalse(index.contains("ignored.ts"));
-        assertTrue(part.contains("### src/main.ts"));
+        assertTrue(part.contains("### FILE: src/main.ts"));
+        assertTrue(part.contains("--- BEGIN FILE: src/main.ts ---"));
+        assertTrue(part.contains("Source code block\nLanguage: TypeScript"));
+        assertTrue(part.contains("--- END FILE: src/main.ts ---"));
         assertTrue(part.contains("~~~ts"));
         assertTrue(prompt.contains("text-bundle-001.md"));
         assertTrue(prompt.contains("text-bundle-response.md"));
@@ -171,7 +177,7 @@ class TextBundlerTest {
     }
 
     @Test
-    void splitsOversizedFilesAndWritesWarningsOutsideCodeFences() throws Exception {
+    void splitsOversizedFilesAndWritesChunkRanges() throws Exception {
         write("src/large.ts", "line1\nline2\nline3\nline4\n");
         CliOptions options = bundleOptions();
         options.maxChars = 12;
@@ -182,8 +188,9 @@ class TextBundlerTest {
         String index = indexSection(read(result.indexPath));
         String firstPart = read(result.partPaths.get(0));
         assertTrue(index.contains("--max-chars"));
-        assertTrue(firstPart.contains("This file exceeded the size limit and was split."));
-        assertTrue(firstPart.indexOf("This file exceeded the size limit and was split.") < firstPart.indexOf("~~~ts"));
+        assertTrue(firstPart.contains("Chunk: 1 / 2"));
+        assertTrue(firstPart.contains("Source lines: 1-2"));
+        assertTrue(firstPart.indexOf("Chunk: 1 / 2") < firstPart.indexOf("~~~ts"));
     }
 
     @Test
@@ -346,10 +353,10 @@ class TextBundlerTest {
         BundleResult result = create(bundleOptions(), new Date(1777913880000L));
 
         String part = read(result.partPaths.get(0));
-        assertTrue(part.indexOf("### A.txt") < part.indexOf("### b.txt"));
-        assertTrue(part.indexOf("### b.txt") < part.indexOf("### file-10.txt"));
-        assertTrue(part.indexOf("### file-10.txt") < part.indexOf("### file-2.txt"));
-        assertTrue(part.indexOf("### file-2.txt") < part.indexOf("### あ.txt"));
+        assertTrue(part.indexOf("### FILE: A.txt") < part.indexOf("### FILE: b.txt"));
+        assertTrue(part.indexOf("### FILE: b.txt") < part.indexOf("### FILE: file-10.txt"));
+        assertTrue(part.indexOf("### FILE: file-10.txt") < part.indexOf("### FILE: file-2.txt"));
+        assertTrue(part.indexOf("### FILE: file-2.txt") < part.indexOf("### FILE: あ.txt"));
     }
 
     @Test
@@ -366,29 +373,28 @@ class TextBundlerTest {
     }
 
     @Test
-    void writesPartMarkdownWithPathHeadingsAndBacktickCodeFences() throws Exception {
+    void writesPartMarkdownWithExplicitFileBlocks() throws Exception {
         write("src/main.ts", "const value = 1;\n");
 
         BundleResult result = create(bundleOptions(), new Date(1777913940000L));
 
         String part = read(result.partPaths.get(0));
         assertTrue(part.contains("# Text Bundle Part 001"));
-        assertTrue(part.contains("### src/main.ts"));
-        assertTrue(part.contains("- Characters: 17"));
-        assertTrue(part.contains("- Source characters: 17"));
-        assertTrue(part.contains("- Source lines: 2"));
-        assertTrue(part.contains("~~~ts\nconst value = 1;\n\n~~~"));
+        assertTrue(part.contains("### FILE: src/main.ts\n\n--- BEGIN FILE: src/main.ts ---"));
+        assertTrue(part.contains("Source code block\nLanguage: TypeScript"));
+        assertTrue(part.contains("~~~ts\nconst value = 1;\n~~~"));
+        assertTrue(part.contains("--- END FILE: src/main.ts ---"));
     }
 
     @Test
-    void separatesLaterFileChunksWithHorizontalRule() throws Exception {
+    void wrapsLaterFileChunksWithExplicitBoundaries() throws Exception {
         write("a.txt", "a\n");
         write("b.txt", "b\n");
 
         BundleResult result = create(bundleOptions(), new Date(1777913940000L));
 
         String part = read(result.partPaths.get(0));
-        assertTrue(part.contains("~~~\n\n---\n\n### b.txt"));
+        assertTrue(part.contains("--- END FILE: a.txt ---\n\n### FILE: b.txt\n\n--- BEGIN FILE: b.txt ---"));
     }
 
     @Test
@@ -458,12 +464,12 @@ class TextBundlerTest {
         assertTrue(index.contains("`docs/skip.md`"));
         assertTrue(index.contains("| `src/main.ts` | 2 | TODO | // TODO: stabilize fixture behavior |"));
 
-        assertTrue(part.indexOf("### README.md") < part.indexOf("### TODO.md"));
-        assertTrue(part.indexOf("### TODO.md") < part.indexOf("### docs/extra.md"));
-        assertTrue(part.indexOf("### docs/extra.md") < part.indexOf("### docs/skip.md"));
-        assertTrue(part.indexOf("### docs/skip.md") < part.indexOf("### src/Alpha.java"));
-        assertTrue(part.indexOf("### src/Alpha.java") < part.indexOf("### src/main.ts"));
-        assertTrue(part.contains("~~~java\npackage fixture;\n\npublic final class Alpha {\n}\n\n~~~"));
+        assertTrue(part.indexOf("### FILE: README.md") < part.indexOf("### FILE: TODO.md"));
+        assertTrue(part.indexOf("### FILE: TODO.md") < part.indexOf("### FILE: docs/extra.md"));
+        assertTrue(part.indexOf("### FILE: docs/extra.md") < part.indexOf("### FILE: docs/skip.md"));
+        assertTrue(part.indexOf("### FILE: docs/skip.md") < part.indexOf("### FILE: src/Alpha.java"));
+        assertTrue(part.indexOf("### FILE: src/Alpha.java") < part.indexOf("### FILE: src/main.ts"));
+        assertTrue(part.contains("~~~java\npackage fixture;\n\npublic final class Alpha {\n}\n~~~"));
     }
 
     private BundleResult create(CliOptions options, Date now) throws IOException {

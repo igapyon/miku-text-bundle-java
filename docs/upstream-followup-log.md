@@ -2,6 +2,21 @@
 
 This document records concrete upstream checks made while maintaining the Java straight-conversion version.
 
+## 2026-07-17: Follow `miku-text-bundle` v1.6.0
+
+- Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch and tag `v1.6.0` commit `58cef5fcb190b10995a633ec60434013c901932b`.
+- Intermediate tag `v1.5.1` corrected the standalone Node CLI bundle for Knowledge source mode; the Java runtime has no corresponding bundled-JavaScript artifact.
+- Main upstream change: both output modes now share an explicit Agent-readable file-block contract with FILE headings, BEGIN/END boundaries, content labels, language names, split ranges, path escaping, and source-whitespace preservation.
+- Java follow-up:
+  - added the shared file-block renderer and expanded extension/special-filename language mapping
+  - added path display escaping and safe Markdown code spans for path cells
+  - updated version, README, release notes, mappings, and development notes
+  - added focused renderer regressions and updated integration, bundler, packaging, and Node/Java parity checks
+- Verification:
+  - upstream Node `npm run build`: passed on 2026-07-17 (75 tests)
+  - Java `mvn verify`: passed on 2026-07-17 (75 unit tests and 3 packaged-jar integration tests)
+  - Node-vs-Java handoff and Knowledge source parity: passed
+
 ## 2026-07-16: Follow `miku-text-bundle` v1.5.0
 
 - Upstream source checked: `https://github.com/igapyon/miku-text-bundle`, devel branch and tag `v1.5.0` commit `b5bd095c7a0fec0396d288826a0963794264740c`.

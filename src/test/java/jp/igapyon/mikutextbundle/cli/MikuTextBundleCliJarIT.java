@@ -30,7 +30,7 @@ class MikuTextBundleCliJarIT {
         assertEquals(0, result.exitCode);
         assertTrue(result.stdout.contains("completed: 1 part(s), 2 file(s) collected, 0 file(s) skipped"));
         assertTrue(read(output.resolve(INDEX_FILE_NAME)).contains("`src/main.ts`"));
-        assertTrue(read(output.resolve(FIRST_PART_FILE_NAME)).contains("### src/main.ts"));
+        assertTrue(read(output.resolve(FIRST_PART_FILE_NAME)).contains("### FILE: src/main.ts"));
         assertEquals("", result.stderr);
     }
 
@@ -45,7 +45,7 @@ class MikuTextBundleCliJarIT {
 
         assertEquals(0, result.exitCode);
         assertTrue(result.stdout.contains("sample-repo-text-bundle-001.md"));
-        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### README.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### FILE: README.md"));
         assertTrue(read(output.resolve("sample-repo-text-bundle-001.md"))
                 .contains("# Text Bundle Index"));
         assertEquals("", result.stderr);
@@ -81,7 +81,7 @@ class MikuTextBundleCliJarIT {
 
     private Path jarPath() {
         String buildDirectory = System.getProperty("project.build.directory", "target");
-        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-1.5.0");
+        String finalName = System.getProperty("project.build.finalName", "miku-text-bundle-java-1.6.0");
         return new File(buildDirectory, finalName + ".jar").toPath();
     }
 

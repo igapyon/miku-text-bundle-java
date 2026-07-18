@@ -81,6 +81,7 @@ java classes:
 
 notes:
   - Covers handoff part/index/prompt Markdown and v1.5.0 neutral Knowledge source and management-index rendering.
+  - v1.6.0 shares explicit Agent-readable file blocks, language metadata, path display escaping, and source-whitespace preservation across both output modes.
 ```
 
 ```text

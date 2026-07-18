@@ -36,7 +36,7 @@ class MikuTextBundleCliIntegrationTest {
         assertTrue(result.out.contains("directories ignored"));
         assertTrue(result.out.contains("file(s) ignored"));
         assertTrue(read(output.resolve(INDEX_FILE_NAME)).contains("src/main.ts"));
-        assertTrue(read(output.resolve(FIRST_PART_FILE_NAME)).contains("### src/main.ts"));
+        assertTrue(read(output.resolve(FIRST_PART_FILE_NAME)).contains("### FILE: src/main.ts"));
         assertTrue(read(output.resolve(PROMPT_FILE_NAME)).contains("text-bundle-response.md"));
     }
 
@@ -70,7 +70,7 @@ class MikuTextBundleCliIntegrationTest {
         assertTrue(result.out.contains("sample-repo-text-bundle-001.md"));
         assertTrue(read(output.resolve("sample-repo-text-bundle-001.md"))
                 .contains("sample-repo-text-bundle-001.md"));
-        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### README.md"));
+        assertTrue(read(output.resolve("sample-repo-text-bundle-001.md")).contains("### FILE: README.md"));
         assertTrue(read(output.resolve("sample-repo-text-bundle-001.md"))
                 .contains("# Text Bundle Index"));
     }
