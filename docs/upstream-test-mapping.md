@@ -112,9 +112,10 @@ notes:
   - Extension-specific and default Shift_JIS decoding cases map the upstream explicit input encoding behavior.
   - v1.0.0 broad recursive discovery, default binary extension exclusion, directory exclusion, output-directory exclusion, ignored counters, terminal index, filename prefix, and UTF-16 code unit ordering are covered.
   - Java uses JDK Charset decoding instead of upstream iconv-lite.
-  - UpstreamParityTest compares handoff and Knowledge source Markdown with a local upstream `dist/main.js` only when the checkout is version `1.5.0`.
+  - v1.6.0 explicit FILE/BEGIN/END blocks, language labels, chunk ranges, and shared handoff/Knowledge source rendering are covered.
+  - UpstreamParityTest compares handoff and Knowledge source Markdown with a local upstream `dist/main.js` only when the checkout is version `1.6.0`.
   - A local upstream root can be supplied with `-DmikuTextBundle.upstreamRoot=/path/to/miku-text-bundle`.
-  - The parity test is skipped when Node or a local upstream 1.5.0 build is unavailable.
+  - The parity test is skipped when Node or a local upstream 1.6.0 build is unavailable.
 ```
 
 ```text

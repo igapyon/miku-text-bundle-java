@@ -8,7 +8,7 @@ This repository follows the miku-soft Java application direction.
 - Java source and target compatibility: `1.8`.
 - CLI entrypoint: `jp.igapyon.mikutextbundle.cli.MikuTextBundleCli`.
 - Core API entrypoint: `jp.igapyon.mikutextbundle.coreapi.TextBundler`.
-- Current upstream compatibility target: `miku-text-bundle` `v1.5.0`.
+- Current upstream compatibility target: `miku-text-bundle` `v1.6.0`.
 - Primary verification command: `mvn test`.
 - Packaged-jar verification command: `mvn verify`.
 - Upstream repository: `https://github.com/igapyon/miku-text-bundle`.
@@ -60,7 +60,7 @@ This repository follows the miku-soft Java application direction.
 - CLI and core API accept `dryRun` / `--dry-run`.
 - Dry-run mode performs discovery, skip handling, marker collection, and part planning without creating the output directory or writing generated files.
 - Dry-run results return planned output paths, counts, warnings, and `BundleResult.dryRun = true`.
-- Part Markdown separates the second and later file chunks with a horizontal rule.
+- v1.2.0 added horizontal separators between later chunks; v1.6.0 replaces them with explicit FILE/BEGIN/END boundaries.
 
 ## v1.3.0 and v1.4.0 Part Sizing Policy
 
@@ -76,6 +76,15 @@ This repository follows the miku-soft Java application direction.
 - Numbered files preserve source bodies and provenance without prompt, acknowledgement, Agent Skill handoff, warnings, skips, or markers.
 - The management index is diagnostic metadata and is not a registration candidate.
 - Existing stale numbered outputs are reported but not deleted.
+
+## v1.6.0 Agent-Readable File Block Policy
+
+- Handoff and Knowledge source output share one renderer for collected files and split chunks.
+- Each block uses a `### FILE: <path>` heading and matching `BEGIN FILE` / `END FILE` boundaries.
+- Known extensions and special filenames receive a block kind, human-readable language name, and concise fence identifier; unknown extensions remain neutral.
+- Split blocks record chunk number and original source line range.
+- Source-body whitespace is preserved, including repeated blank lines.
+- Backslashes and control characters in displayed paths are escaped so headings, boundaries, and index cells remain unambiguous single-line records.
 
 ## Packaging
 

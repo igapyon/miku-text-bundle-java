@@ -3,6 +3,7 @@ package jp.igapyon.mikutextbundle.markdown;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import jp.igapyon.mikutextbundle.model.BundleChunk;
@@ -13,19 +14,82 @@ import jp.igapyon.mikutextbundle.model.SkippedFile;
 import jp.igapyon.mikutextbundle.core.MikuTextBundle;
 
 public final class Markdown {
-    private static final Map<String, String> EXTENSION_LANGUAGES = new HashMap<String, String>();
+    private static final Map<String, LanguageDetails> EXTENSION_LANGUAGES = new HashMap<String, LanguageDetails>();
+    private static final Map<String, LanguageDetails> FILE_NAME_LANGUAGES = new HashMap<String, LanguageDetails>();
+    private static final LanguageDetails UNKNOWN_LANGUAGE = new LanguageDetails("Unknown", "", "Source content block");
 
     static {
-        EXTENSION_LANGUAGES.put("ts", "ts");
-        EXTENSION_LANGUAGES.put("tsx", "tsx");
-        EXTENSION_LANGUAGES.put("js", "js");
-        EXTENSION_LANGUAGES.put("jsx", "jsx");
-        EXTENSION_LANGUAGES.put("mjs", "js");
-        EXTENSION_LANGUAGES.put("cjs", "js");
-        EXTENSION_LANGUAGES.put("java", "java");
-        EXTENSION_LANGUAGES.put("cs", "csharp");
-        EXTENSION_LANGUAGES.put("md", "md");
-        EXTENSION_LANGUAGES.put("json", "json");
+        EXTENSION_LANGUAGES.put("ts", sourceCode("TypeScript", "ts"));
+        EXTENSION_LANGUAGES.put("mts", sourceCode("TypeScript", "ts"));
+        EXTENSION_LANGUAGES.put("cts", sourceCode("TypeScript", "ts"));
+        EXTENSION_LANGUAGES.put("tsx", sourceCode("TypeScript TSX", "tsx"));
+        EXTENSION_LANGUAGES.put("js", sourceCode("JavaScript", "js"));
+        EXTENSION_LANGUAGES.put("jsx", sourceCode("JavaScript JSX", "jsx"));
+        EXTENSION_LANGUAGES.put("mjs", sourceCode("JavaScript", "js"));
+        EXTENSION_LANGUAGES.put("cjs", sourceCode("JavaScript", "js"));
+        EXTENSION_LANGUAGES.put("java", sourceCode("Java", "java"));
+        EXTENSION_LANGUAGES.put("cs", sourceCode("C#", "csharp"));
+        EXTENSION_LANGUAGES.put("py", sourceCode("Python", "python"));
+        EXTENSION_LANGUAGES.put("pyw", sourceCode("Python", "python"));
+        EXTENSION_LANGUAGES.put("go", sourceCode("Go", "go"));
+        EXTENSION_LANGUAGES.put("rs", sourceCode("Rust", "rust"));
+        EXTENSION_LANGUAGES.put("c", sourceCode("C", "c"));
+        EXTENSION_LANGUAGES.put("h", sourceCode("C header", "c"));
+        EXTENSION_LANGUAGES.put("cc", sourceCode("C++", "cpp"));
+        EXTENSION_LANGUAGES.put("cpp", sourceCode("C++", "cpp"));
+        EXTENSION_LANGUAGES.put("cxx", sourceCode("C++", "cpp"));
+        EXTENSION_LANGUAGES.put("hh", sourceCode("C++ header", "cpp"));
+        EXTENSION_LANGUAGES.put("hpp", sourceCode("C++ header", "cpp"));
+        EXTENSION_LANGUAGES.put("hxx", sourceCode("C++ header", "cpp"));
+        EXTENSION_LANGUAGES.put("swift", sourceCode("Swift", "swift"));
+        EXTENSION_LANGUAGES.put("kt", sourceCode("Kotlin", "kotlin"));
+        EXTENSION_LANGUAGES.put("kts", sourceCode("Kotlin Script", "kotlin"));
+        EXTENSION_LANGUAGES.put("scala", sourceCode("Scala", "scala"));
+        EXTENSION_LANGUAGES.put("rb", sourceCode("Ruby", "ruby"));
+        EXTENSION_LANGUAGES.put("php", sourceCode("PHP", "php"));
+        EXTENSION_LANGUAGES.put("sh", sourceCode("Shell", "bash"));
+        EXTENSION_LANGUAGES.put("bash", sourceCode("Bash", "bash"));
+        EXTENSION_LANGUAGES.put("zsh", sourceCode("Z shell", "zsh"));
+        EXTENSION_LANGUAGES.put("fish", sourceCode("fish shell", "fish"));
+        EXTENSION_LANGUAGES.put("ps1", sourceCode("PowerShell", "powershell"));
+        EXTENSION_LANGUAGES.put("sql", sourceCode("SQL", "sql"));
+        EXTENSION_LANGUAGES.put("html", sourceCode("HTML", "html"));
+        EXTENSION_LANGUAGES.put("htm", sourceCode("HTML", "html"));
+        EXTENSION_LANGUAGES.put("css", sourceCode("CSS", "css"));
+        EXTENSION_LANGUAGES.put("scss", sourceCode("SCSS", "scss"));
+        EXTENSION_LANGUAGES.put("sass", sourceCode("Sass", "sass"));
+        EXTENSION_LANGUAGES.put("less", sourceCode("Less", "less"));
+        EXTENSION_LANGUAGES.put("vue", sourceCode("Vue", "vue"));
+        EXTENSION_LANGUAGES.put("svelte", sourceCode("Svelte", "svelte"));
+        EXTENSION_LANGUAGES.put("groovy", sourceCode("Groovy", "groovy"));
+        EXTENSION_LANGUAGES.put("gradle", sourceCode("Gradle", "groovy"));
+        EXTENSION_LANGUAGES.put("md", sourceText("Markdown", "md"));
+        EXTENSION_LANGUAGES.put("markdown", sourceText("Markdown", "md"));
+        EXTENSION_LANGUAGES.put("txt", sourceText("Plain text", "text"));
+        EXTENSION_LANGUAGES.put("rst", sourceText("reStructuredText", "rst"));
+        EXTENSION_LANGUAGES.put("adoc", sourceText("AsciiDoc", "asciidoc"));
+        EXTENSION_LANGUAGES.put("json", sourceCode("JSON", "json"));
+        EXTENSION_LANGUAGES.put("jsonl", sourceCode("JSON Lines", "json"));
+        EXTENSION_LANGUAGES.put("yaml", sourceText("YAML", "yaml"));
+        EXTENSION_LANGUAGES.put("yml", sourceText("YAML", "yaml"));
+        EXTENSION_LANGUAGES.put("xml", sourceText("XML", "xml"));
+        EXTENSION_LANGUAGES.put("toml", sourceText("TOML", "toml"));
+        EXTENSION_LANGUAGES.put("ini", sourceText("INI", "ini"));
+        EXTENSION_LANGUAGES.put("cfg", sourceText("Configuration", "ini"));
+        EXTENSION_LANGUAGES.put("conf", sourceText("Configuration", "text"));
+        EXTENSION_LANGUAGES.put("properties", sourceText("Java properties", "properties"));
+        EXTENSION_LANGUAGES.put("csv", sourceText("CSV", "csv"));
+        EXTENSION_LANGUAGES.put("tsv", sourceText("TSV", "tsv"));
+
+        FILE_NAME_LANGUAGES.put("dockerfile", sourceCode("Dockerfile", "dockerfile"));
+        FILE_NAME_LANGUAGES.put("containerfile", sourceCode("Containerfile", "dockerfile"));
+        FILE_NAME_LANGUAGES.put("makefile", sourceCode("Makefile", "makefile"));
+        FILE_NAME_LANGUAGES.put("gnumakefile", sourceCode("GNU Makefile", "makefile"));
+        FILE_NAME_LANGUAGES.put("gradlew", sourceCode("Shell", "bash"));
+        FILE_NAME_LANGUAGES.put(".gitignore", sourceText("Git ignore rules", "gitignore"));
+        FILE_NAME_LANGUAGES.put(".gitattributes", sourceText("Git attributes", "gitattributes"));
+        FILE_NAME_LANGUAGES.put(".editorconfig", sourceText("EditorConfig", "editorconfig"));
+        FILE_NAME_LANGUAGES.put(".npmrc", sourceText("npm configuration", "ini"));
     }
 
     private Markdown() {
@@ -60,13 +124,8 @@ public final class Markdown {
         lines.add("- Approx chars: " + part.charCount);
         lines.add("");
 
-        for (int i = 0; i < part.chunks.size(); i++) {
-            if (i > 0) {
-                lines.add("---");
-                lines.add("");
-            }
-            BundleChunk chunk = part.chunks.get(i);
-            lines.addAll(buildChunkMarkdown(chunk));
+        for (BundleChunk chunk : part.chunks) {
+            lines.addAll(buildFileBlockMarkdown(chunk));
         }
 
         if (index != null) {
@@ -179,29 +238,28 @@ public final class Markdown {
         return names;
     }
 
-    private static List<String> buildChunkMarkdown(BundleChunk chunk) {
+    private static List<String> buildFileBlockMarkdown(BundleChunk chunk) {
         List<String> lines = new ArrayList<String>();
-        lines.add("### " + chunk.relativePath);
+        String path = displayPath(chunk.relativePath);
+        lines.add("### FILE: " + path);
         lines.add("");
-        lines.add("- Characters: " + chunk.content.length());
-        lines.add("- Source characters: " + chunk.originalCharCount);
-        lines.add("- Source lines: " + chunk.originalLineCount);
-
-        if (chunk.splitReason != null) {
-            lines.add("- Warning: " + chunk.splitReason);
-            lines.add("- Split: " + chunk.chunkIndex + " / " + chunk.chunkCount);
-        }
-
+        lines.add("--- BEGIN FILE: " + path + " ---");
         lines.add("");
-        if (chunk.splitReason != null) {
-            lines.add("This file exceeded the size limit and was split. Source file: `" + chunk.relativePath + "`. Split: " + chunk.chunkIndex + " / " + chunk.chunkCount + ".");
+        if (chunk.chunkCount > 1) {
+            lines.add("Chunk: " + chunk.chunkIndex + " / " + chunk.chunkCount);
+            lines.add("Source lines: " + chunk.sourceStartLine + "-" + chunk.sourceEndLine);
             lines.add("");
         }
-
+        LanguageDetails language = languageFor(chunk.extension, chunk.relativePath);
         String fence = fenceFor(chunk.content);
-        lines.add(fence + languageFor(chunk.extension));
-        lines.add(chunk.content);
-        lines.add(fence);
+        String fencedContent = fence + language.fenceLanguage + "\n" + chunk.content
+                + (chunk.content.endsWith("\n") ? "" : "\n") + fence;
+        lines.add(language.blockLabel);
+        lines.add("Language: " + language.displayName);
+        lines.add("");
+        lines.add(fencedContent);
+        lines.add("");
+        lines.add("--- END FILE: " + path + " ---");
         lines.add("");
         return lines;
     }
@@ -210,36 +268,10 @@ public final class Markdown {
         List<String> lines = new ArrayList<String>();
         lines.add("# Knowledge Source " + pad3(part.partNumber));
         lines.add("");
-        for (int i = 0; i < part.chunks.size(); i++) {
-            BundleChunk chunk = part.chunks.get(i);
-            if (i > 0) {
-                lines.add("---");
-                lines.add("");
-            }
-            lines.add("## Source: " + chunk.relativePath);
-            lines.add("");
-            lines.add("- Source path: " + code(chunk.relativePath));
-            if (chunk.chunkCount > 1) {
-                lines.add("- Source chunk: " + chunk.chunkIndex + " / " + chunk.chunkCount);
-                lines.add("- Source lines: " + chunk.sourceStartLine + "-" + chunk.sourceEndLine);
-            }
-            lines.add("");
-            if ("md".equals(chunk.extension)) {
-                lines.add(chunk.content);
-                lines.add("");
-            } else {
-                String fence = fenceFor(chunk.content);
-                lines.add(fence + languageFor(chunk.extension));
-                lines.add(chunk.content);
-                lines.add(fence);
-                lines.add("");
-            }
+        for (BundleChunk chunk : part.chunks) {
+            lines.addAll(buildFileBlockMarkdown(chunk));
         }
         return join(lines, "\n") + "\n";
-    }
-
-    private static String markdownFirstRun(List<String> lines) {
-        return join(lines, "\n").replaceFirst("\\n{3,}", "\n\n") + "\n";
     }
 
     public static String buildKnowledgeIndexMarkdown(KnowledgeIndexOptions options) {
@@ -288,7 +320,7 @@ public final class Markdown {
         lines.add("## Stale Output Candidates"); lines.add("");
         if (options.staleOutputCandidates.isEmpty()) { lines.add("- None"); lines.add(""); }
         else { for (String value : options.staleOutputCandidates) lines.add("- " + code(value)); lines.add(""); }
-        return markdownFirstRun(lines);
+        return markdown(lines);
     }
 
     private static List<String> row(String... values) {
@@ -320,9 +352,15 @@ public final class Markdown {
         return repeat("~", longest + 1);
     }
 
-    private static String languageFor(String extension) {
-        String language = EXTENSION_LANGUAGES.get(extension);
-        return language == null ? "" : language;
+    private static LanguageDetails languageFor(String extension, String relativePath) {
+        LanguageDetails language = EXTENSION_LANGUAGES.get(extension);
+        if (language != null) {
+            return language;
+        }
+        int slash = relativePath.lastIndexOf('/');
+        String fileName = relativePath.substring(slash + 1).toLowerCase(Locale.ROOT);
+        language = FILE_NAME_LANGUAGES.get(fileName);
+        return language == null ? UNKNOWN_LANGUAGE : language;
     }
 
     private static List<String> partsTable(List<BundlePart> parts) {
@@ -465,11 +503,70 @@ public final class Markdown {
     }
 
     private static String markdown(List<String> lines) {
-        return join(lines, "\n").replaceAll("\\n{3,}", "\n\n") + "\n";
+        List<String> compacted = new ArrayList<String>();
+        for (String line : lines) {
+            if (!line.isEmpty() || compacted.isEmpty() || !compacted.get(compacted.size() - 1).isEmpty()) {
+                compacted.add(line);
+            }
+        }
+        return join(compacted, "\n") + "\n";
     }
 
     private static String code(String value) {
-        return "`" + value + "`";
+        String displayed = displayPath(value).replace("|", "\\|");
+        int longest = 0;
+        int current = 0;
+        for (int i = 0; i < displayed.length(); i++) {
+            if (displayed.charAt(i) == '`') {
+                current++;
+                longest = Math.max(longest, current);
+            } else {
+                current = 0;
+            }
+        }
+        String delimiter = repeat("`", longest + 1);
+        return delimiter + displayed + delimiter;
+    }
+
+    private static String displayPath(String relativePath) {
+        StringBuilder displayed = new StringBuilder();
+        for (int i = 0; i < relativePath.length(); i++) {
+            char character = relativePath.charAt(i);
+            if (character == '\\') {
+                displayed.append("\\\\");
+            } else if (character == '\n') {
+                displayed.append("\\n");
+            } else if (character == '\r') {
+                displayed.append("\\r");
+            } else if (character == '\t') {
+                displayed.append("\\t");
+            } else if (character <= 0x1f || character == 0x7f) {
+                displayed.append(String.format("\\u%04x", Integer.valueOf(character)));
+            } else {
+                displayed.append(character);
+            }
+        }
+        return displayed.toString();
+    }
+
+    private static LanguageDetails sourceCode(String displayName, String fenceLanguage) {
+        return new LanguageDetails(displayName, fenceLanguage, "Source code block");
+    }
+
+    private static LanguageDetails sourceText(String displayName, String fenceLanguage) {
+        return new LanguageDetails(displayName, fenceLanguage, "Source text block");
+    }
+
+    private static final class LanguageDetails {
+        private final String displayName;
+        private final String fenceLanguage;
+        private final String blockLabel;
+
+        private LanguageDetails(String displayName, String fenceLanguage, String blockLabel) {
+            this.displayName = displayName;
+            this.fenceLanguage = fenceLanguage;
+            this.blockLabel = blockLabel;
+        }
     }
 
     private static String escapeTable(String value) {
